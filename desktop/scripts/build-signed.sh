@@ -39,7 +39,9 @@ fi
 npx tauri build --bundles app,dmg "$@"
 
 BUNDLE=src-tauri/target/release/bundle
-[[ -d src-tauri/target/universal-apple-darwin ]] && [[ " $* " == *universal* ]] && BUNDLE=src-tauri/target/universal-apple-darwin/release/bundle
+for t in universal-apple-darwin aarch64-apple-darwin x86_64-apple-darwin; do
+  if [[ " $* " == *" $t"* ]]; then BUNDLE="src-tauri/target/$t/release/bundle"; fi
+done
 APP="$BUNDLE/macos/TC001 Agent.app"
 DMG=$(ls -t "$BUNDLE"/dmg/*.dmg | head -1)
 

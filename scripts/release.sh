@@ -56,22 +56,34 @@ else
 fi
 
 # ---------- приложение ----------
-step "TC001 Agent (universal)"
-rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null
+step "TC001 Agent"
+# cargo/rustc из rustup должны идти раньше Homebrew-версии: цели ставятся только в toolchain rustup
+export PATH="$HOME/.cargo/bin:$PATH"
+TARGET=universal-apple-darwin
+ARCH_LABEL=universal
+if command -v rustup >/dev/null && rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null 2>&1 \
+   && [[ -d "$(rustc --print sysroot)/lib/rustlib/x86_64-apple-darwin" ]]; then
+  echo "rustc: $(command -v rustc) — universal (Apple Silicon + Intel)"
+else
+  TARGET=aarch64-apple-darwin
+  ARCH_LABEL=arm64
+  echo "⚠ rustc $(command -v rustc) без цели x86_64 — собираю только для Apple Silicon."
+  echo "  Для universal: brew uninstall rust; установить rustup (https://rustup.rs)."
+fi
 cd desktop
 npm ci --silent
 SIGNED=0
 if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]] || security find-identity -v -p codesigning | grep -q '"Developer ID Application'; then
-  ./scripts/build-signed.sh --target universal-apple-darwin
+  ./scripts/build-signed.sh --target "$TARGET"
   SIGNED=1
 else
   echo "⚠ Нет сертификата Developer ID — сборка без подписи (скачанная с GitHub потребует «Всё равно открыть» в настройках безопасности)."
-  npx tauri build --bundles app,dmg --target universal-apple-darwin
+  npx tauri build --bundles app,dmg --target "$TARGET"
 fi
-BUNDLE=src-tauri/target/universal-apple-darwin/release/bundle
+BUNDLE="src-tauri/target/$TARGET/release/bundle"
 DMG=$(ls -t "$BUNDLE"/dmg/*.dmg | head -1)
-cp "$DMG" "$DIST/TC001-Agent-$VERSION-universal.dmg"
-(cd "$BUNDLE/macos" && ditto -c -k --keepParent "TC001 Agent.app" "$DIST/TC001-Agent-$VERSION-universal.app.zip")
+cp "$DMG" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.dmg"
+(cd "$BUNDLE/macos" && ditto -c -k --keepParent "TC001 Agent.app" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.app.zip")
 cd "$ROOT"
 
 (cd "$DIST" && shasum -a 256 * > SHA256SUMS.txt)
@@ -92,7 +104,7 @@ cat > "$NOTES" <<EOF
 **Прошивка:** \`tc001-usb-$TAG-merged.bin\` — через [веб-прошивальщик](https://billo32.github.io/dos-gatos/) или
 \`esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 460800 write_flash 0x0 tc001-usb-$TAG-merged.bin\`
 
-**TC001 Agent для macOS** (Apple Silicon + Intel): \`TC001-Agent-$VERSION-universal.dmg\`
+**TC001 Agent для macOS** ($( [[ $ARCH_LABEL == universal ]] && echo "Apple Silicon + Intel" || echo "только Apple Silicon" )): \`TC001-Agent-$VERSION-$ARCH_LABEL.dmg\`
 $( ((SIGNED)) && echo "Подписан Developer ID." || echo "Без подписи: после первой попытки запуска — Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть», или \`xattr -dr com.apple.quarantine \"/Applications/TC001 Agent.app\"\`." )
 
 Перед прошивкой сохрани текущую: \`esptool.py --chip esp32 --port … read_flash 0 0x400000 backup.bin\`
