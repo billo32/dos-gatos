@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TC001</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <div>
+        <div id="statusText" class="status-text">Нет связи с TC001</div>
+        <div id="statusSub" class="sub"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="inline" title="Яркость матрицы">
+        <span>Яркость</span>
+        <input id="bright" type="range" min="1" max="120" value="30">
+      </label>
+      <label class="inline switch">
+        <input id="autostart" type="checkbox">
+        <span>Запускать при входе</span>
+      </label>
+      <button id="reconnect" class="ghost" title="Переоткрыть serial-порт">Переподключить</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="apps">Источники</button>
+    <button class="tab" data-tab="notify">Уведомление</button>
+    <button class="tab" data-tab="log">Лог</button>
+  </nav>
+
+  <main>
+    <section id="tab-apps" class="tab-body active">
+      <aside class="list">
+        <ul id="appList"></ul>
+        <button id="addApp" class="ghost wide">+ Добавить источник</button>
+        <button id="openCfg" class="link">Открыть папку с apps.json</button>
+      </aside>
+
+      <div class="editor" id="editor">
+        <div class="empty" id="emptyHint">Выбери источник слева или добавь новый.</div>
+        <form id="form" hidden>
+          <div class="grid">
+            <label>Имя<input name="name" required placeholder="btc"></label>
+            <label>Период, с<input name="every" type="number" min="10" placeholder="300"></label>
+            <label class="span2">URL<input name="url" required placeholder="https://api.example.com/..."></label>
+            <label>JSON path<input name="path" placeholder="bitcoin.usd"></label>
+            <label>Regex<input name="re" placeholder="\[(\d+)"></label>
+            <label>find<input name="find" placeholder='"field":['></label>
+            <label>keep<input name="keep" type="number" min="1" placeholder="128"></label>
+            <label>Шаблон<input name="fmt" placeholder="{v}k"></label>
+            <label>Цвет<input name="color" type="color" value="#ffffff"></label>
+            <label>Множитель<input name="scale" type="number" step="any" placeholder="1"></label>
+            <label>Знаков после запятой<input name="dec" type="number" min="0" max="6" placeholder="как есть"></label>
+          </div>
+          <p class="hint">Сначала <b>find</b>/<b>keep</b> (окно после подстроки), затем <b>path</b> по JSON, затем <b>regex</b> (первая группа). Пустые поля не отправляются.</p>
+
+          <div class="row">
+            <button type="button" id="test">Проверить источник</button>
+            <button type="button" id="del" class="danger ghost">Удалить</button>
+          </div>
+
+          <div class="result" id="result" hidden>
+            <div class="led"><span id="ledText"></span></div>
+            <div class="meta" id="resultMeta"></div>
+            <details><summary>Начало ответа</summary><pre id="preview"></pre></details>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="tab-notify" class="tab-body">
+      <div class="card">
+        <label>Текст<input id="nText" value="Hello TC001"></label>
+        <label>Цвет<input id="nColor" type="color" value="#00ff00"></label>
+        <button id="nSend">Показать на часах</button>
+        <p class="hint">То же из терминала:<br><code>curl -X POST 127.0.0.1:7765/notify -d '{"text":"Deploy OK","color":"#00FF00"}'</code></p>
+      </div>
+    </section>
+
+    <section id="tab-log" class="tab-body">
+      <div class="row"><button id="openLog" class="ghost">Открыть файл лога</button></div>
+      <pre id="log" class="log"></pre>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="dirty" class="sub"></span>
+    <button id="save" class="primary" disabled>Сохранить и отправить на часы</button>
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+[
+  {
+    "name": "malaga-temp",
+    "url": "https://api.open-meteo.com/v1/forecast?latitude=36.72&longitude=-4.42&current=temperature_2m",
+    "path": "current.temperature_2m",
+    "fmt": "{v}C",
+    "dec": 0,
+    "every": 600,
+    "color": "#FFAA00"
+  },
+  {
+    "name": "btc",
+    "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+    "path": "bitcoin.usd",
+    "fmt": "{v}k",
+    "scale": 0.001,
+    "dec": 1,
+    "every": 120,
+    "color": "#F7931A"
+  },
+  {
+    "name": "rain-find",
+    "url": "https://api.open-meteo.com/v1/forecast?latitude=36.72&longitude=-4.42&hourly=precipitation_probability&forecast_hours=1",
+    "find": "\"precipitation_probability\":[",
+    "keep": 40,
+    "re": "\\[(\\d+)",
+    "fmt": "R{v}%",
+    "every": 900,
+    "color": "#0088FF"
+  }
+]

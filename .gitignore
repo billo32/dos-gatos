@@ -1,0 +1,20 @@
+# окружения и сборка
+.venv/
+__pycache__/
+node_modules/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+firmware/.pio/
+# готовые образы публикуются в Releases, не в git
+firmware/bin/
+# проприетарная заводская прошивка Ulanzi — не публиковать
+tc001-backup.bin
+*-backup.bin
+# ключи подписи
+desktop/signing.env
+*.p8
+*.p12
+*.cer
+# мусор
+.trash/
+.DS_Store
