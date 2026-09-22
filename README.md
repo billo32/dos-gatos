@@ -65,6 +65,15 @@ npm run release
 
 Скрипт подписывает `.app` с hardened runtime, нотаризует `.app` и `.dmg` и прикрепляет к ним подтверждение нотаризации (stapler).
 
+### Релиз с Mac одной командой
+
+```bash
+brew install gh && gh auth login     # один раз
+scripts/release.sh 0.3.2
+```
+
+Скрипт проставляет версию, собирает прошивку (PlatformIO) и universal-приложение (подписанное, если есть Developer ID), делает коммит и тег, пушит и создаёт GitHub Release с `.dmg`, `.app.zip`, образом прошивки и `SHA256SUMS.txt`. Готовый образ прошивки можно передать через `FIRMWARE_BIN=/путь/merged.bin`.
+
 ### Релиз через GitHub Actions
 
 Тег `v*` запускает `.github/workflows/release.yml`: сборку прошивки, universal-сборку приложения с подписью и нотаризацией и черновик релиза с `.dmg` и образом прошивки. Нужные секреты перечислены в начале workflow.
