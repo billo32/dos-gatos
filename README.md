@@ -67,10 +67,7 @@ npm run release
 
 ### Релиз с Mac одной командой
 
-```bash
-brew install gh && gh auth login     # один раз
-scripts/release.sh 0.3.2
-```
+Двойной клик по `Release.command` в Finder (или `scripts/release.sh 0.3.2` в терминале). При первом запуске он поставит `gh` и попросит войти в GitHub.
 
 Скрипт проставляет версию, собирает прошивку (PlatformIO) и universal-приложение (подписанное, если есть Developer ID), делает коммит и тег, пушит и создаёт GitHub Release с `.dmg`, `.app.zip`, образом прошивки и `SHA256SUMS.txt`. Готовый образ прошивки можно передать через `FIRMWARE_BIN=/путь/merged.bin`.
 
