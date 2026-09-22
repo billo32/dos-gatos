@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dos-gatos Flasher</title>
+  <meta name="description" content="Flash the dos-gatos firmware to an Ulanzi TC001 pixel clock from the browser.">
+  <link rel="icon" type="image/png" href="icon.png">
+  <script type="module" src="vendor/esp-web-tools/install-button.js"></script>
+  <style>
+    :root {
+      --bg: #f4f4f5; --panel: #ffffff; --text: #18181b; --muted: #63636b; --line: #e4e4e7;
+      --accent: #ff9f0a; --accent-ink: #1a1206; --warn-bg: #fff6e5; --warn-line: #f5c46b;
+      --led-bg: #111114; --led-off: #26262c; --code-bg: #f1f1f3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e0e10; --panel: #17171a; --text: #ececf0; --muted: #9a9aa3; --line: #2a2a2f;
+        --warn-bg: #2a2111; --warn-line: #6b5220; --code-bg: #202024;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+    h1 { font-size: 30px; margin: 24px 0 6px; letter-spacing: -.01em; }
+    h2 { font-size: 18px; margin: 36px 0 10px; }
+    p { margin: 8px 0; }
+    .lead { color: var(--muted); margin: 0 0 24px; }
+    a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+    code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+    code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+    pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+    pre code { background: none; padding: 0; }
+
+    .matrix { background: var(--led-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid;
+      grid-template-columns: repeat(32, 1fr); gap: 3px; aspect-ratio: 32 / 8.6; max-width: 560px; }
+    .px { border-radius: 50%; background: var(--led-off); aspect-ratio: 1; }
+    .px.on { background: #ffb020; box-shadow: 0 0 6px #ff9f0a99; }
+
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 16px 0; }
+    .install { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+    .version { color: var(--muted); font-size: 13px; }
+    .btn { font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0;
+      border-radius: 8px; padding: 11px 20px; cursor: pointer; }
+    .btn:hover { filter: brightness(1.06); }
+    .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+    .note { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 14px; margin: 16px 0; }
+    .muted { color: var(--muted); }
+    ol, ul { padding-left: 22px; margin: 8px 0; }
+    li { margin: 4px 0; }
+    footer { margin-top: 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="matrix" id="matrix" aria-hidden="true"></div>
+
+  <h1>dos-gatos</h1>
+  <p class="lead">Firmware for the Ulanzi TC001 pixel clock. The clock decides what to fetch and when;
+    a small macOS agent does the HTTPS requests over USB. No Wi-Fi needed.</p>
+
+  <div class="note">
+    <b>Back up your current firmware first.</b> The browser flasher cannot read the flash back.
+    If you may want the stock firmware or AWTRIX later, save it with esptool:
+    <pre><code>pip install esptool
+esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX read_flash 0 0x400000 tc001-backup.bin</code></pre>
+  </div>
+
+  <section class="card install">
+    <div>
+      <b>Install firmware</b>
+      <div class="version" id="version">loading…</div>
+    </div>
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate" class="btn">Connect &amp; install</button>
+      <span slot="unsupported">Your browser can't talk to USB devices. Use desktop <b>Chrome</b> or <b>Edge</b>.</span>
+      <span slot="not-allowed">This page must be opened over HTTPS.</span>
+    </esp-web-install-button>
+  </section>
+
+  <h2>Before you click</h2>
+  <ol>
+    <li>Connect the clock with a USB-C <b>data</b> cable. Charge-only cables don't work.</li>
+    <li>Turn the clock on. It is invisible to the computer while it's off.</li>
+    <li>Close anything holding the port: TC001 Agent, Arduino IDE, PlatformIO, serial monitors.</li>
+    <li>In the dialog, pick <code>USB Serial</code> / <code>CH340</code> (on some revisions <code>CP2102</code>).</li>
+  </ol>
+  <p class="muted">Flashing takes about a minute. Settings stored on the clock are kept unless you choose to erase the device.</p>
+
+  <h2>After flashing</h2>
+  <p>The clock shows <code>--:--</code> with a red dot: it's waiting for the agent.
+    Install <b>TC001 Agent</b> from the <a href="https://github.com/billo32/dos-gatos/releases/latest">latest release</a>,
+    open it and the clock gets time and data within a few seconds.</p>
+
+  <h2>Going back</h2>
+  <pre><code>esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 460800 write_flash 0x0 tc001-backup.bin</code></pre>
+  <p class="muted">AWTRIX has its own web flasher and can be installed over this firmware directly.</p>
+
+  <footer>
+    <a href="https://github.com/billo32/dos-gatos">Source on GitHub</a> · MIT ·
+    Flashing by <a href="https://github.com/esphome/esp-web-tools">ESP Web Tools</a>.
+    Not affiliated with Ulanzi. Ulanzi and TC001 are trademarks of their owners.
+  </footer>
+</main>
+
+<script>
+  // 32×8 preview: the current time in the same 3×5 style the clock uses
+  const FONT = {
+    "0": ["111","101","101","101","111"], "1": ["010","110","010","010","111"],
+    "2": ["111","001","111","100","111"], "3": ["111","001","111","001","111"],
+    "4": ["101","101","111","001","001"], "5": ["111","100","111","001","111"],
+    "6": ["111","100","111","101","111"], "7": ["111","001","010","010","010"],
+    "8": ["111","101","111","101","111"], "9": ["111","101","111","001","111"],
+    ":": ["0","1","0","1","0"], " ": ["0","0","0","0","0"]
+  };
+  const m = document.getElementById("matrix");
+  const px = [];
+  for (let i = 0; i < 256; i++) { const d = document.createElement("div"); d.className = "px"; m.appendChild(d); px.push(d); }
+  function draw() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0"), mm = String(now.getMinutes()).padStart(2, "0");
+    const text = hh + (now.getSeconds() % 2 ? ":" : " ") + mm;
+    const cols = [];
+    for (const ch of text) {
+      const g = FONT[ch];
+      for (let x = 0; x < g[0].length; x++) cols.push(g.map((row) => row[x] === "1"));
+      cols.push([false, false, false, false, false]);
+    }
+    cols.pop();
+    const x0 = Math.floor((32 - cols.length) / 2);
+    px.forEach((p) => p.classList.remove("on"));
+    cols.forEach((col, cx) => col.forEach((on, cy) => { if (on) px[(cy + 2) * 32 + x0 + cx].classList.add("on"); }));
+  }
+  draw();
+  setInterval(draw, 1000);
+
+  fetch("manifest.json").then((r) => r.json()).then((mf) => {
+    document.getElementById("version").textContent = `${mf.name} ${mf.version} · ESP32`;
+  }).catch(() => { document.getElementById("version").textContent = "manifest not found"; });
+</script>
+</body>
+</html>

@@ -18,6 +18,10 @@
 LGPL: исходники прошивки полностью в этом репозитории. Образ из Releases пересобирается
 командой `pio run -d firmware`, в том числе с другими версиями библиотек из `platformio.ini`.
 
+## Веб-прошивальщик (`web/`)
+
+[ESP Web Tools](https://github.com/esphome/esp-web-tools) 10.4.0 (Apache-2.0), включая esptool-js. Копируется в сайт при сборке, текст лицензии — `vendor/esp-web-tools/LICENSE`.
+
 ## Python-агент (`agent/`)
 
 [pyserial](https://github.com/pyserial/pyserial) (BSD-3-Clause), [certifi](https://github.com/certifi/python-certifi) (MPL-2.0). Не распространяются в бинарном виде.

@@ -21,7 +21,9 @@ PORT=$(ls /dev/cu.usbserial-* | head -1)
 esptool.py --chip esp32 --port $PORT read_flash 0 0x400000 tc001-backup.bin
 ```
 
-Прошить образ `tc001-usb-*-merged.bin` из [Releases](https://github.com/billo32/dos-gatos/releases). На 921600 CH340 на macOS срывается, поэтому скорость 460800:
+Проще всего прошить из браузера: **[billo32.github.io/dos-gatos](https://billo32.github.io/dos-gatos/)** (Chrome или Edge на компьютере). Страница собирается из `web/` workflow `pages.yml` при каждом изменении прошивки в `main`.
+
+Вручную: прошить образ `tc001-usb-*-merged.bin` из [Releases](https://github.com/billo32/dos-gatos/releases). На 921600 CH340 на macOS срывается, поэтому скорость 460800:
 
 ```bash
 esptool.py --chip esp32 --port $PORT --baud 460800 write_flash 0x0 tc001-usb-v0.3.2-merged.bin

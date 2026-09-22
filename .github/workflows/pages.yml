@@ -1,0 +1,60 @@
+# Веб-прошивальщик на GitHub Pages: https://billo32.github.io/dos-gatos/
+# Однократно: Settings → Pages → Source: GitHub Actions.
+# Пересобирается при изменениях прошивки или страницы в main и при публикации релиза.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["firmware/**", "web/**", ".github/workflows/pages.yml"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/platformio.ini') }}
+      - run: pip install platformio esptool
+      - run: pio run -d firmware
+      - name: Единый образ
+        run: |
+          B=firmware/.pio/build/tc001
+          BOOT_APP0=$(find ~/.platformio/packages/framework-arduinoespressif32 -name boot_app0.bin | head -1)
+          esptool --chip esp32 merge-bin -o merged.bin \
+            0x1000 $B/bootloader.bin 0x8000 $B/partitions.bin 0xe000 "$BOOT_APP0" 0x10000 $B/firmware.bin
+      - run: web/build.sh "$PWD/merged.bin"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
