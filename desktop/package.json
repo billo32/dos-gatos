@@ -2,7 +2,7 @@
   "name": "tc001-agent",
   "private": true,
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.3.2",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",

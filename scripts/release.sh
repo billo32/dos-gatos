@@ -46,7 +46,10 @@ else
   "$PIO" run -d firmware
   B=firmware/.pio/build/tc001
   BOOT_APP0=$(find "$HOME/.platformio/packages" -path '*framework-arduinoespressif32*' -name boot_app0.bin | head -1)
-  ESPTOOL=(python3 "$HOME/.platformio/packages/tool-esptoolpy/esptool.py")
+  # esptool нужен pyserial: берём Python из окружения PlatformIO, в нём он точно есть
+  PIO_PY="$HOME/.platformio/penv/bin/python"
+  [[ -x "$PIO_PY" ]] || PIO_PY=python3
+  ESPTOOL=("$PIO_PY" "$HOME/.platformio/packages/tool-esptoolpy/esptool.py")
   command -v esptool >/dev/null && ESPTOOL=(esptool)
   "${ESPTOOL[@]}" --chip esp32 merge_bin -o "$FW_OUT" \
     0x1000 "$B/bootloader.bin" 0x8000 "$B/partitions.bin" 0xe000 "$BOOT_APP0" 0x10000 "$B/firmware.bin"
