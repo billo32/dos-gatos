@@ -23,8 +23,11 @@ def main(duration=None):
     def send(msg):
         os.write(master, (json.dumps(msg) + "\n").encode())
 
+    state = {"font": "5x7", "wifi": {"ssid": "", "state": "off"}}
+    hello = lambda n: {"t": "hello", "fw": "fake", "apps": n, "font": state["font"], "wifi": state["wifi"]}
+
     os.write(master, b"ets Jun  8 2016 00:22:57\r\nrst:0x1 (POWERON_RESET),boot:0x13\r\n")
-    send({"t": "hello", "fw": "fake", "apps": 0})
+    send(hello(0))
 
     apps, pending, next_id, buf = [], {}, 1, b""
     t0 = time.time()
@@ -40,9 +43,21 @@ def main(duration=None):
             if t == "ping":
                 send({"t": "pong"})
             elif t == "hello?":
-                send({"t": "hello", "fw": "fake", "apps": len(apps)})
+                send(hello(len(apps)))
             elif t == "time":
-                print(f"[screen] clock synced epoch={msg['epoch']} tz={msg['tz']}", flush=True)
+                print(f"[screen] clock synced epoch={msg['epoch']} tz={msg['tz']} tzp={msg.get('tzp')}", flush=True)
+            elif t == "icon":
+                print(f"[device] icon {msg['id']} stored ({len(msg['px'])} hex chars)", flush=True)
+            elif t == "settings":
+                state["font"] = msg.get("font", state["font"])
+                print(f"[device] default font -> {state['font']}", flush=True)
+                send(hello(len(apps)))
+            elif t == "wifi":
+                state["wifi"] = {"ssid": msg["ssid"], "state": "connected" if msg["ssid"] else "off"}
+                if msg["ssid"]:
+                    state["wifi"].update(ip="192.168.1.77", rssi=-58)
+                print(f"[device] wifi -> {state['wifi']}", flush=True)
+                send({"t": "wifi", **state["wifi"]})
             elif t == "apps":
                 apps = msg["apps"]
                 print(f"[device] got {len(apps)} apps", flush=True)
@@ -64,7 +79,7 @@ def main(duration=None):
                 else:
                     print(f"[screen] {a.get('name')}: error status={msg['status']}", flush=True)
             elif t == "notify":
-                print(f"[screen] NOTIFY {msg.get('text')!r} {msg.get('color')}", flush=True)
+                print(f"[screen] NOTIFY {msg.get('text')!r} {msg.get('color')} icon={msg.get('icon')}", flush=True)
 
 
 if __name__ == "__main__":

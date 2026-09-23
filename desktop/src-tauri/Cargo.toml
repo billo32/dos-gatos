@@ -24,6 +24,7 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 regex = "1"
 tiny_http = "0.12"
 chrono = "0.4"
+image = { version = "0.25", default-features = false, features = ["png", "gif", "jpeg"] }
 
 [profile.release]
 strip = true

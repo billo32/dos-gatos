@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 BIN="${1:?usage: web/build.sh path/to/tc001-usb-merged.bin}"
 EWT_VERSION="10.4.0"
-FW_VERSION=$(grep -m1 '#define FW_VERSION' ../firmware/src/main.cpp | sed -E 's/.*"(.*)".*/\1/')
+FW_VERSION=$(grep -m1 '#define FW_VERSION' ../firmware/src/version.h | sed -E 's/.*"(.*)".*/\1/')
 REV=$(git rev-parse --short HEAD 2>/dev/null || echo local)
 
 rm -rf _site && mkdir -p _site/firmware _site/vendor/esp-web-tools

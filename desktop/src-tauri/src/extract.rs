@@ -1,5 +1,5 @@
-//! Извлечение значения из ответа API — те же правила, что в agent.py.
-//! find/keep: окно после подстроки; path: "a.b.0.c" по JSON; re: первая группа или всё совпадение.
+//! Value extraction from an API response — same rules as the firmware and agent.py.
+//! find/keep: window after a substring; path: "a.b.0.c" in JSON; re: first group or the whole match.
 
 use serde_json::Value;
 
@@ -25,11 +25,11 @@ pub fn extract(
         for part in p.split('.') {
             node = match node {
                 Value::Array(a) => {
-                    let idx: usize = part.parse().map_err(|_| format!("path: '{part}' не индекс массива"))?;
-                    a.get(idx).ok_or_else(|| format!("path: индекс {idx} вне массива"))?
+                    let idx: usize = part.parse().map_err(|_| format!("path: '{part}' is not an array index"))?;
+                    a.get(idx).ok_or_else(|| format!("path: index {idx} out of range"))?
                 }
-                Value::Object(o) => o.get(part).ok_or_else(|| format!("path: нет ключа '{part}'"))?,
-                _ => return Err(format!("path: '{part}' — узел не объект и не массив")),
+                Value::Object(o) => o.get(part).ok_or_else(|| format!("path: no key '{part}'"))?,
+                _ => return Err(format!("path: '{part}' — not an object or array")),
             };
         }
         cur = match node {
@@ -47,7 +47,7 @@ pub fn extract(
     Ok(Some(cur))
 }
 
-/// Форматирование как на часах (scale/dec/fmt) — для предпросмотра в настройках.
+/// Formatting as on the clock (scale/dec/fmt) — for the settings preview.
 pub fn format_like_device(value: &str, app: &Value) -> String {
     let scale = app.get("scale").and_then(Value::as_f64).unwrap_or(1.0);
     let dec = app.get("dec").and_then(Value::as_i64).unwrap_or(-1);

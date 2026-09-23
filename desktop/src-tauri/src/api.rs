@@ -1,4 +1,4 @@
-//! Локальный HTTP API на 127.0.0.1:7765 — совместим с agent.py.
+//! Local HTTP API on 127.0.0.1:7765 (compatible with agent.py).
 //!   curl -X POST 127.0.0.1:7765/notify -d '{"text":"Deploy OK","color":"#00FF00"}'
 
 use serde_json::{json, Value};
@@ -16,7 +16,7 @@ pub fn start(link: Arc<Link>) {
     let server = match Server::http(API_ADDR) {
         Ok(s) => s,
         Err(e) => {
-            let msg = format!("порт {API_ADDR} занят ({e}) — работает старый агент? ./agent/install-launchagent.sh uninstall");
+            let msg = format!("port {API_ADDR} is busy ({e}) — old agent still running? ./agent/install-launchagent.sh uninstall");
             warn!("{msg}");
             link.set_api_error(Some(msg));
             return;
@@ -36,7 +36,7 @@ pub fn start(link: Arc<Link>) {
     });
 }
 
-fn route(link: &Link, method: &Method, url: &str, body: &str) -> (u16, Value) {
+fn route(link: &Arc<Link>, method: &Method, url: &str, body: &str) -> (u16, Value) {
     if *method == Method::Get && url == "/status" {
         return (200, serde_json::to_value(link.status()).unwrap_or(Value::Null));
     }
@@ -55,7 +55,27 @@ fn route(link: &Link, method: &Method, url: &str, body: &str) -> (u16, Value) {
         "/notify" => {
             let mut m = b.as_object().cloned().unwrap_or_default();
             m.insert("t".into(), json!("notify"));
+            if let Some(id) = m.get("icon").and_then(Value::as_str).map(str::to_string) {
+                if let Err(e) = link.ensure_icon(&id) {
+                    return (400, json!({"error": e}));
+                }
+            }
             Value::Object(m)
+        }
+        "/wifi" => {
+            let ssid = b.get("ssid").and_then(Value::as_str).unwrap_or("");
+            let pass = b.get("pass").and_then(Value::as_str).unwrap_or("");
+            return match link.set_wifi(ssid, pass) {
+                Ok(()) => (200, json!({"ok": true})),
+                Err(e) => (503, json!({"error": e})),
+            };
+        }
+        "/font" => {
+            let f = b.get("font").and_then(Value::as_str).unwrap_or("");
+            return match link.set_font(f) {
+                Ok(()) => (200, json!({"ok": true})),
+                Err(e) => (400, json!({"error": e})),
+            };
         }
         "/bright" => json!({"t": "bright", "v": b.get("v").cloned().unwrap_or(json!(30))}),
         "/apps" => {

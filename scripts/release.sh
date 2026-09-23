@@ -31,8 +31,8 @@ step "Версия $VERSION"
 sed -i '' -E "s/^version = \"[^\"]+\"/version = \"$VERSION\"/" desktop/src-tauri/Cargo.toml
 sed -i '' -E "s/\"version\": \"[^\"]+\"/\"version\": \"$VERSION\"/" desktop/src-tauri/tauri.conf.json
 sed -i '' -E "1,/\"version\":/ s/\"version\": \"[^\"]+\"/\"version\": \"$VERSION\"/" desktop/package.json
-sed -i '' -E "s/#define FW_VERSION   \"[^\"]+\"/#define FW_VERSION   \"$VERSION\"/" firmware/src/main.cpp
-grep -m1 FW_VERSION firmware/src/main.cpp
+sed -i '' -E "s/#define FW_VERSION   \"[^\"]+\"/#define FW_VERSION   \"$VERSION\"/" firmware/src/version.h
+grep -m1 FW_VERSION firmware/src/version.h
 
 # ---------- прошивка ----------
 step "Прошивка"
@@ -73,9 +73,14 @@ fi
 cd desktop
 npm ci --silent
 SIGNED=0
+NOTARIZED=0
+if [[ -f signing.env ]]; then set -a; source signing.env; set +a; fi
+HAVE_NOTARY=0
+[[ -n "${APPLE_NOTARY_PROFILE:-}${APPLE_API_KEY:-}${APPLE_ID:-}" ]] && HAVE_NOTARY=1
 if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]] || security find-identity -v -p codesigning | grep -q '"Developer ID Application'; then
-  ./scripts/build-signed.sh --target "$TARGET"
+  SKIP_NOTARIZE=1 ./scripts/build-signed.sh --target "$TARGET"
   SIGNED=1
+  ((HAVE_NOTARY)) || echo "⚠ Нет данных для нотаризации (desktop/signing.env) — релиз будет подписан, но не нотаризован."
 else
   echo "⚠ Нет сертификата Developer ID — сборка без подписи (скачанная с GitHub потребует «Всё равно открыть» в настройках безопасности)."
   npx tauri build --bundles app,dmg --target "$TARGET"
@@ -86,12 +91,18 @@ cp "$DMG" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.dmg"
 (cd "$BUNDLE/macos" && ditto -c -k --keepParent "TC001 Agent.app" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.app.zip")
 cd "$ROOT"
 
-(cd "$DIST" && shasum -a 256 * > SHA256SUMS.txt)
+if ((SIGNED && HAVE_NOTARY)); then
+  step "Нотаризация"
+  scripts/notarize-release.sh "$TAG" --no-upload
+  NOTARIZED=1
+else
+  (cd "$DIST" && shasum -a 256 *.dmg *.zip *.bin > SHA256SUMS.txt)
+fi
 ls -lh "$DIST"
 
 # ---------- git ----------
 step "Коммит и тег $TAG"
-git add desktop/src-tauri/Cargo.toml desktop/src-tauri/Cargo.lock desktop/src-tauri/tauri.conf.json desktop/package.json desktop/package-lock.json firmware/src/main.cpp
+git add desktop/src-tauri/Cargo.toml desktop/src-tauri/Cargo.lock desktop/src-tauri/tauri.conf.json desktop/package.json desktop/package-lock.json firmware/src/version.h
 git commit -m "Release $TAG" || true
 git tag -a "$TAG" -m "dos-gatos $TAG"
 git push origin HEAD "$TAG"
@@ -105,7 +116,7 @@ cat > "$NOTES" <<EOF
 \`esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 460800 write_flash 0x0 tc001-usb-$TAG-merged.bin\`
 
 **TC001 Agent для macOS** ($( [[ $ARCH_LABEL == universal ]] && echo "Apple Silicon + Intel" || echo "только Apple Silicon" )): \`TC001-Agent-$VERSION-$ARCH_LABEL.dmg\`
-$( ((SIGNED)) && echo "Подписан Developer ID." || echo "Без подписи: после первой попытки запуска — Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть», или \`xattr -dr com.apple.quarantine \"/Applications/TC001 Agent.app\"\`." )
+$( ((NOTARIZED)) && echo "Подписан Developer ID и нотаризован Apple." || { ((SIGNED)) && echo "Подписан Developer ID (без нотаризации: при первом запуске — «Всё равно открыть» в настройках безопасности)."; } || echo "Без подписи: после первой попытки запуска — Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть», или \`xattr -dr com.apple.quarantine \"/Applications/TC001 Agent.app\"\`." )
 
 Перед прошивкой сохрани текущую: \`esptool.py --chip esp32 --port … read_flash 0 0x400000 backup.bin\`
 EOF

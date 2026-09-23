@@ -23,7 +23,13 @@ export APPLE_SIGNING_IDENTITY
 echo "Подпись: $APPLE_SIGNING_IDENTITY"
 
 notarize_args=()
-if [[ -n "${APPLE_API_KEY:-}" ]]; then
+if [[ "${SKIP_NOTARIZE:-0}" == 1 ]]; then
+  # release.sh нотаризует dmg и app.zip сам (scripts/notarize-release.sh)
+  unset APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+  echo "Нотаризация — отдельным шагом после сборки."
+elif [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
+  notarize_args=(--keychain-profile "$APPLE_NOTARY_PROFILE")
+elif [[ -n "${APPLE_API_KEY:-}" ]]; then
   : "${APPLE_API_ISSUER:?нужен APPLE_API_ISSUER}" "${APPLE_API_KEY_PATH:?нужен APPLE_API_KEY_PATH}"
   export APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH
   notarize_args=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")

@@ -1,7 +1,8 @@
-//! TC001 Agent — приложение в трее: связь с часами по USB, окно настроек apps, автозапуск.
+//! TC001 Agent — menu bar app: USB link to the clock, settings window, launch at login.
 
 mod api;
 mod extract;
+mod icons;
 mod link;
 pub mod logbuf;
 
@@ -41,7 +42,7 @@ fn get_apps(link: State<Arc<Link>>) -> Result<Value, String> {
 
 #[tauri::command]
 fn save_apps(apps: Value, link: State<Arc<Link>>) -> Result<bool, String> {
-    link.save_apps(&apps)
+    link.inner().save_apps(&apps)
 }
 
 #[tauri::command]
@@ -65,8 +66,37 @@ fn set_brightness(v: u8, link: State<Arc<Link>>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn notify(text: String, color: String, link: State<Arc<Link>>) -> Result<(), String> {
-    link.send(&json!({"t": "notify", "text": text, "color": color, "dur": 6000}))
+async fn notify(text: String, color: String, icon: Option<String>, link: State<'_, Arc<Link>>) -> Result<(), String> {
+    let l = link.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut msg = json!({"t": "notify", "text": text, "color": color, "dur": 6000});
+        if let Some(id) = icon.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()) {
+            l.ensure_icon(&id)?;
+            msg["icon"] = json!(id);
+        }
+        l.send(&msg)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn icon_preview(id: String, link: State<'_, Arc<Link>>) -> Result<Vec<String>, String> {
+    let l = link.inner().clone();
+    let px = tauri::async_runtime::spawn_blocking(move || l.icons.get(id.trim()))
+        .await
+        .map_err(|e| e.to_string())??;
+    Ok(icons::to_css(&px))
+}
+
+#[tauri::command]
+fn set_font(font: String, link: State<Arc<Link>>) -> Result<(), String> {
+    link.set_font(&font)
+}
+
+#[tauri::command]
+fn set_wifi(ssid: String, pass: String, link: State<Arc<Link>>) -> Result<(), String> {
+    link.set_wifi(ssid.trim(), &pass)
 }
 
 #[tauri::command]
@@ -91,6 +121,11 @@ fn open_config_dir(link: State<Arc<Link>>) {
     if let Some(dir) = link.apps_path.parent() {
         open_path(dir);
     }
+}
+
+#[tauri::command]
+fn open_icon_gallery() {
+    open_path(std::path::Path::new("https://developer.lametric.com/icons"));
 }
 
 #[tauri::command]
@@ -142,17 +177,22 @@ fn status_line(s: &Status) -> String {
         }
     }
     if s.connected && s.fw.is_some() {
-        format!("● TC001 на связи · fw {}", s.fw.as_deref().unwrap_or("?"))
+        let wifi = match s.wifi.as_ref().and_then(|w| w.get("state")).and_then(|v| v.as_str()) {
+            Some("connected") => " · Wi‑Fi ready",
+            Some("connecting") => " · Wi‑Fi connecting",
+            _ => "",
+        };
+        format!("● Connected via USB · fw {}{wifi}", s.fw.as_deref().unwrap_or("?"))
     } else if s.connected {
-        "◐ Порт открыт, жду ответа часов…".into()
+        "◐ Port open, waiting for the clock…".into()
     } else {
-        "○ Нет связи с TC001".into()
+        "○ TC001 not connected".into()
     }
 }
 
 fn values_line(s: &Status) -> String {
     if s.values.is_empty() {
-        return "Данных пока нет".into();
+        return "No data yet".into();
     }
     s.values
         .iter()
@@ -179,7 +219,11 @@ pub fn run() {
             open_log,
             open_config_dir,
             get_autostart,
-            set_autostart
+            set_autostart,
+            icon_preview,
+            set_font,
+            set_wifi,
+            open_icon_gallery
         ])
         .setup(|app| {
             // только иконка в трее, без Dock
@@ -195,7 +239,7 @@ pub fn run() {
             let apps_path = cfg_dir.join("apps.json");
             if !apps_path.exists() {
                 std::fs::write(&apps_path, DEFAULT_APPS)?;
-                info!("создан {}", apps_path.display());
+                info!("created {}", apps_path.display());
             }
 
             // при первом запуске включить автозапуск
@@ -207,18 +251,18 @@ pub fn run() {
                 let _ = std::fs::write(&marker, "");
             }
 
-            let link = Link::new(apps_path);
+            let link = Link::new(apps_path, cfg_dir.join("icons"));
             app.manage(link.clone());
 
             // ---- tray ----
-            let status_i = MenuItem::with_id(app, "status", "○ Нет связи с TC001", false, None::<&str>)?;
-            let values_i = MenuItem::with_id(app, "values", "Данных пока нет", false, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "Настройки…", true, None::<&str>)?;
-            let reconnect_i = MenuItem::with_id(app, "reconnect", "Переподключить", true, None::<&str>)?;
-            let log_i = MenuItem::with_id(app, "log", "Открыть лог", true, None::<&str>)?;
+            let status_i = MenuItem::with_id(app, "status", "○ TC001 not connected", false, None::<&str>)?;
+            let values_i = MenuItem::with_id(app, "values", "No data yet", false, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
+            let reconnect_i = MenuItem::with_id(app, "reconnect", "Reconnect", true, None::<&str>)?;
+            let log_i = MenuItem::with_id(app, "log", "Open Log", true, None::<&str>)?;
             let autostart_on = app.autolaunch().is_enabled().unwrap_or(false);
-            let auto_i = CheckMenuItem::with_id(app, "autostart", "Запускать при входе", true, autostart_on, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+            let auto_i = CheckMenuItem::with_id(app, "autostart", "Launch at Login", true, autostart_on, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(
                 app,
                 &[
@@ -284,7 +328,7 @@ pub fn run() {
         .run(|_app, event| {
             if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
                 if code.is_none() {
-                    api.prevent_exit(); // не выходить, когда окно спрятано
+                    api.prevent_exit(); // keep running in the menu bar when the window is hidden
                 }
             }
         });
