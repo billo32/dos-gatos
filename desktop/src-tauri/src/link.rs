@@ -246,8 +246,14 @@ impl Link {
 
     // ---------- protocol ----------
     fn handle(self: &Arc<Self>, raw: &str) {
+        // Plain-text output from the clock = its crash handler (panic backtrace, brownout, watchdog)
+        const CRASH: &[&str] = &["Guru Meditation", "Backtrace", "panic", "Brownout", "abort()", "Rebooting", "assert", "wdt", "Stack canary"];
+        let json_at = raw.find('{');
+        if json_at != Some(0) && CRASH.iter().any(|k| raw.contains(k)) {
+            warn!("device crash output: {}", raw.chars().take(300).collect::<String>());
+        }
         // ROM bootloader output without a newline may be glued to the start of the JSON
-        let line = match raw.find('{') {
+        let line = match json_at {
             Some(i) => &raw[i..],
             None => return,
         };
@@ -259,7 +265,13 @@ impl Link {
         match msg.get("t").and_then(Value::as_str).unwrap_or("") {
             "hello" => {
                 let fw = msg.get("fw").and_then(Value::as_str).unwrap_or("?").to_string();
-                info!("device hello: fw={fw} apps={}", msg.get("apps").unwrap_or(&Value::Null));
+                let rst = msg.get("rst").and_then(Value::as_str).unwrap_or("?");
+                info!("device hello: fw={fw} apps={} reset={rst} heap={}", msg.get("apps").unwrap_or(&Value::Null), msg.get("heap").unwrap_or(&Value::Null));
+                if matches!(rst, "panic" | "int_wdt" | "task_wdt" | "wdt" | "brownout") {
+                    warn!("the clock restarted after a {rst} — see 'device crash output' lines above");
+                }
+                // hello = часы (пере)загрузились: могли быть перепрошиты или стёрты, иконки отправляем заново
+                self.icons_sent.lock().unwrap().clear();
                 let font = msg.get("font").and_then(Value::as_str).map(str::to_string);
                 let wifi = msg.get("wifi").cloned();
                 self.update(|s| {

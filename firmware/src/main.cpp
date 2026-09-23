@@ -10,15 +10,16 @@
 #include <ArduinoJson.h>
 #include <FastLED.h>
 #include <FastLED_NeoMatrix.h>
-#include <Fonts/TomThumb.h>
 #include <LittleFS.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
 #include <esp_sntp.h>
+#include <esp_system.h>
 #include <sys/time.h>
 
 #include "Font4x6.h"
+#include "FontBlocky3x5.h"
 #include "net.h"
 #include "version.h"
 
@@ -52,7 +53,7 @@ Preferences prefs;
 // ---------- fonts ----------
 enum FontId : int8_t { FONT_DEFAULT = -1, FONT_5X7 = 0, FONT_4X6 = 1, FONT_3X5 = 2 };
 const char *FONT_NAMES[] = {"5x7", "4x6", "3x5"};
-int8_t fontDefault = FONT_5X7;
+int8_t fontDefault = FONT_3X5;
 
 int8_t parseFont(const char *s, int8_t def) {
   if (!s) return def;
@@ -61,21 +62,29 @@ int8_t parseFont(const char *s, int8_t def) {
 }
 
 const GFXfont *gfxFont(int8_t f) {
-  return f == FONT_4X6 ? &Font4x6 : f == FONT_3X5 ? &TomThumb : nullptr;
+  return f == FONT_4X6 ? &Font4x6 : f == FONT_3X5 ? &FontBlocky3x5 : nullptr;
 }
 int8_t baselineY(int8_t f) { return f == FONT_5X7 ? 0 : 6; }   // 5x7: курсор — верх; GFXfont: базовая линия
 
+// «°» (UTF-8 C2 B0) → глиф градуса: 0xF8 в 5x7 (CP437), '`' в наших шрифтах
+String glyphText(int8_t f, const String &s) {
+  String t = s;
+  t.replace("\xC2\xB0", f == FONT_5X7 ? "\xF8" : "`");
+  return t;
+}
+
+int advance(int8_t f, uint8_t c) {
+  const GFXfont *g = gfxFont(f);
+  if (!g) return 6;
+  if (c < pgm_read_word(&g->first) || c > pgm_read_word(&g->last)) c = '?';
+  GFXglyph *gl = ((GFXglyph *)pgm_read_ptr(&g->glyph)) + (c - pgm_read_word(&g->first));
+  return pgm_read_byte(&gl->xAdvance);
+}
+
 int textWidth(int8_t f, const String &s) {
   if (!s.length()) return 0;
-  const GFXfont *g = gfxFont(f);
-  if (!g) return s.length() * 6 - 1;
   int w = 0;
-  for (size_t i = 0; i < s.length(); i++) {
-    uint8_t c = s[i];
-    if (c < pgm_read_word(&g->first) || c > pgm_read_word(&g->last)) c = '?';
-    GFXglyph *gl = ((GFXglyph *)pgm_read_ptr(&g->glyph)) + (c - pgm_read_word(&g->first));
-    w += pgm_read_byte(&gl->xAdvance);
-  }
+  for (size_t i = 0; i < s.length(); i++) w += advance(f, s[i]);
   return w - 1;
 }
 
@@ -108,7 +117,15 @@ bool saveIcon(const String &id, const char *hex) {
     char b[5] = {hex[i * 4], hex[i * 4 + 1], hex[i * 4 + 2], hex[i * 4 + 3], 0};
     px[i] = (uint16_t)strtoul(b, nullptr, 16);
   }
-  File f = LittleFS.open("/i/" + id + ".bin", "w", true);
+  const String path = "/i/" + id + ".bin";
+  if (LittleFS.exists(path)) {                 // та же иконка уже лежит — флеш не трогаем
+    uint16_t old[ICON_PX];
+    File r = LittleFS.open(path, "r");
+    bool same = r && r.read((uint8_t *)old, sizeof(old)) == sizeof(old) && !memcmp(old, px, sizeof(px));
+    if (r) r.close();
+    if (same) return true;
+  }
+  File f = LittleFS.open(path, "w", true);
   if (!f) return false;
   bool ok = f.write((uint8_t *)px, sizeof(px)) == sizeof(px);
   f.close();
@@ -201,10 +218,28 @@ void fillWifiStatus(JsonObject w) {
   }
 }
 
+const char *resetReason() {
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON:   return "poweron";
+    case ESP_RST_EXT:       return "external";
+    case ESP_RST_SW:        return "software";
+    case ESP_RST_PANIC:     return "panic";
+    case ESP_RST_INT_WDT:   return "int_wdt";
+    case ESP_RST_TASK_WDT:  return "task_wdt";
+    case ESP_RST_WDT:       return "wdt";
+    case ESP_RST_DEEPSLEEP: return "deepsleep";
+    case ESP_RST_BROWNOUT:  return "brownout";
+    case ESP_RST_SDIO:      return "sdio";
+    default:                return "unknown";
+  }
+}
+
 void sendHello() {
   JsonDocument d;
   d["t"] = "hello";
   d["fw"] = FW_VERSION;
+  d["rst"] = resetReason();                // причина последней перезагрузки — для диагностики
+  d["heap"] = ESP.getFreeHeap();
   d["apps"] = appCount;
   d["font"] = FONT_NAMES[fontDefault];
   fillWifiStatus(d["wifi"].to<JsonObject>());
@@ -528,7 +563,7 @@ void handleLine(char *line) {
     loadAppsFromJson(arr);
     String s;
     serializeJson(arr, s);
-    prefs.putString("apps", s);
+    if (s != prefs.getString("apps", "")) prefs.putString("apps", s);   // агент шлёт apps на каждый hello
     onLinkUp();
     sendLog("apps updated: " + String(appCount));
   } else if (!strcmp(t, "icon")) {
@@ -632,26 +667,36 @@ void drawIcon(const Icon &ic, bool dim) {
 
 // Текст в области [x0, MW): по центру, если помещается; иначе бегущая строка.
 // С иконкой область начинается с x=9, иконка рисуется поверх уехавшего влево текста.
-void drawText(const String &s, uint16_t color, int8_t font, const Icon *icon = nullptr, bool dimIcon = false) {
+int drawText(const String &text, uint16_t color, int8_t font, const Icon *icon = nullptr, bool dimIcon = false) {
   if (font == FONT_DEFAULT) font = fontDefault;
+  const String s = glyphText(font, text);
+  int startX;
   const int x0 = (icon && icon->ok) ? ICON_W + 1 : 0;
   const int area = MW - x0;
   matrix->setFont(gfxFont(font));
   matrix->setTextColor(color);
   int w = textWidth(font, s);
   if (w <= area) {
-    matrix->setCursor(x0 + (area - w + 1) / 2, baselineY(font));
-    matrix->print(s);
+    startX = x0 + (area - w + 1) / 2;
   } else {
     if (millis() - lastScroll > 45) { scrollX--; lastScroll = millis(); }
     if (scrollX < x0 - w) scrollX = MW;
-    matrix->setCursor(scrollX, baselineY(font));
-    matrix->print(s);
+    startX = scrollX;
   }
+  matrix->setCursor(startX, baselineY(font));
+  matrix->print(s);
   if (x0) {
     matrix->fillRect(0, 0, x0, MH, 0);
     drawIcon(*icon, dimIcon);
   }
+  return startX;
+}
+
+// Полоса дней недели в нижней строке: 7 сегментов по 3 px, понедельник первый, сегодня — оранжевый
+void drawWeekdays(int wday) {
+  const int today = (wday + 6) % 7;
+  for (int d = 0; d < 7; d++)
+    matrix->drawFastHLine(2 + d * 4, MH - 1, 3, d == today ? matrix->Color(240, 110, 40) : matrix->Color(45, 45, 50));
 }
 
 void drawClock() {
@@ -660,9 +705,16 @@ void drawClock() {
   struct tm t;
   localtime_r(&now, &t);
   char buf[6];
-  snprintf(buf, sizeof(buf), (t.tm_sec % 2) ? "%02d:%02d" : "%02d %02d", t.tm_hour, t.tm_min);
+  snprintf(buf, sizeof(buf), "%02d:%02d", t.tm_hour, t.tm_min);
   // серым — время только из RTC, ни агент, ни NTP его ещё не подтвердили
-  drawText(buf, trustedTime ? matrix->Color(255, 255, 255) : matrix->Color(90, 90, 90), FONT_DEFAULT);
+  int x = drawText(buf, trustedTime ? matrix->Color(255, 240, 220) : matrix->Color(90, 90, 90), FONT_DEFAULT);
+  if (t.tm_sec % 2) {
+    // мигание: гасим двоеточие, не сдвигая цифры
+    const int f = fontDefault;
+    const int cx = x + advance(f, buf[0]) + advance(f, buf[1]);
+    matrix->fillRect(cx, 0, advance(f, ':') - 1, MH - 1, 0);
+  }
+  drawWeekdays(t.tm_wday);
 }
 
 // Точка в правом нижнем углу: нет — USB; синяя — работаем по Wi-Fi; красная — связи нет.
@@ -707,7 +759,7 @@ void setup() {
 
   prefs.begin("tc001usb", false);
   brightness = prefs.getUChar("bright", 30);
-  fontDefault = constrain((int8_t)prefs.getUChar("font", FONT_5X7), FONT_5X7, FONT_3X5);
+  fontDefault = constrain((int8_t)prefs.getUChar("font", FONT_3X5), FONT_5X7, FONT_3X5);
   applyTz(prefs.getString("tzp", "UTC0"));
 
   if (!LittleFS.begin(true)) sendLog("littlefs mount failed");
@@ -721,6 +773,7 @@ void setup() {
       NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG);
   matrix->begin();
   matrix->setTextWrap(false);
+  matrix->cp437(true);                   // 0xF8 = «°» во встроенном 5x7
   matrix->setBrightness(brightness);
 
   loadApps();

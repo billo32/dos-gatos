@@ -7,9 +7,9 @@ const $ = (id) => document.getElementById(id);
 const FIELDS = ["name", "url", "every", "path", "re", "find", "keep", "fmt", "color", "scale", "dec", "icon", "font"];
 const NUMERIC = new Set(["every", "keep", "scale", "dec"]);
 const FONTS = [
-  ["5x7", "Classic 5×7"],
+  ["3x5", "Blocky 3×5"],
   ["4x6", "Compact 4×6"],
-  ["3x5", "Tiny 3×5"],
+  ["5x7", "Classic 5×7"],
 ];
 
 let apps = [];
@@ -40,7 +40,7 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-const deviceFont = () => (lastStatus && lastStatus.font) || "5x7";
+const deviceFont = () => (lastStatus && lastStatus.font) || "3x5";
 
 async function getIcon(id) {
   id = (id || "").trim();
@@ -210,7 +210,7 @@ $("test").addEventListener("click", async () => {
     const ok = r.status >= 200 && r.status < 300 && r.value != null;
     let icon = null;
     if (a.icon) icon = await getIcon(a.icon).catch(() => null);
-    led.show({ text: ok ? r.formatted : "—", color: ok ? a.color || "#ffffff" : "#555555", font: a.font || deviceFont(), icon });
+    led.show({ text: ok ? r.formatted : "--", color: ok ? a.color || "#ffffff" : "#555555", font: a.font || deviceFont(), icon });
     const meta = $("resultMeta");
     meta.className = "meta" + (ok ? "" : " err");
     meta.textContent = ok
@@ -318,11 +318,8 @@ function renderFonts() {
   }
   const now = new Date();
   const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  for (const [key, m] of fontMatrices) {
-    // longest sample that fits on 32 px without scrolling
-    const text = [`${hhmm} 23C`, `${hhmm} 23`, hhmm].find((t) => window.PixelMatrix.textWidth(key, t) <= 32);
-    m.show({ text, font: key, color: "#ffb020" });
-  }
+  const weekday = (now.getDay() + 6) % 7;
+  for (const [key, m] of fontMatrices) m.show({ text: hhmm, font: key, color: "#fff0dc", weekday });
   const current = lastStatus && lastStatus.fw ? lastStatus.font : null;
   box.querySelectorAll(".font-choice").forEach((b) => {
     b.classList.toggle("active", b.dataset.font === current);

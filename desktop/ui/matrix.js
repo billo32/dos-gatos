@@ -1,7 +1,11 @@
 // 32×8 preview that mirrors the firmware's drawText(): same fonts, icon area, centering and scrolling.
 (function () {
   const W = 32, H = 8, ICON = 8;
-  const OFF = "#1c1c20";
+  const OFF = "#1d1d21";
+  const WEEK_ON = "#f06e28", WEEK_OFF = "#3a3a42";
+
+  // «°» → глиф градуса: 0xF8 в 5x7, '`' в 3x5 и 4x6 (как в прошивке)
+  const glyphText = (font, s) => s.replace(/°/g, font === "5x7" ? "\u00f8" : "`");
 
   function glyph(font, ch) {
     const g = font.glyphs[String(ch.charCodeAt(0))];
@@ -9,6 +13,7 @@
   }
 
   function textWidth(fontKey, s) {
+    s = glyphText(fontKey, s);
     const f = window.PIXEL_FONTS[fontKey];
     let w = 0;
     for (const ch of s) w += glyph(f, ch).adv;
@@ -38,15 +43,19 @@
     }
 
     // icon: 64 CSS colors ("" = off) or null
-    show({ text, color = "#ffffff", font = "5x7", icon = null }) {
+    // weekday: 0..6 (Mon..Sun) — полоса дней недели под часами
+    show({ text, color = "#ffffff", font = "3x5", icon = null, weekday = null }) {
       clearInterval(this.timer);
+      const raw = text;
+      text = glyphText(font, raw);
       const x0 = icon ? ICON + 1 : 0;
       const area = W - x0;
-      const w = textWidth(font, text);
+      const w = textWidth(font, raw);
       const frame = (x) => {
         const px = new Array(W * H).fill("");
         drawText(px, font, text, x, color, x0);
         if (icon) icon.forEach((c, i) => { if (c) px[(i >> 3) * W + (i & 7)] = c; });
+        if (weekday != null) for (let d = 0; d < 7; d++) for (let k = 0; k < 3; k++) px[7 * W + 2 + d * 4 + k] = d === weekday ? WEEK_ON : WEEK_OFF;
         this.paint(px);
       };
       if (w <= area) {
@@ -76,12 +85,13 @@
       const cell = this.canvas.width / W;
       ctx.fillStyle = "#0e0e11";
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      const g = cell * 0.14, r = cell * 0.18, sz = cell - 2 * g;
       for (let i = 0; i < W * H; i++) {
-        const x = (i % W) * cell + cell / 2, y = Math.floor(i / W) * cell + cell / 2;
+        const x = (i % W) * cell + g, y = Math.floor(i / W) * cell + g;
         ctx.beginPath();
-        ctx.arc(x, y, cell * 0.38, 0, Math.PI * 2);
+        ctx.roundRect(x, y, sz, sz, r);
         ctx.fillStyle = px[i] || OFF;
-        if (px[i]) { ctx.shadowColor = px[i]; ctx.shadowBlur = cell * 0.5; } else { ctx.shadowBlur = 0; }
+        if (px[i]) { ctx.shadowColor = px[i]; ctx.shadowBlur = cell * 0.35; } else { ctx.shadowBlur = 0; }
         ctx.fill();
       }
       ctx.shadowBlur = 0;

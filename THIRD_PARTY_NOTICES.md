@@ -14,7 +14,6 @@
 | [Adafruit GFX Library](https://github.com/adafruit/Adafruit-GFX-Library) | BSD-2-Clause | включая шрифт 5×7 |
 | [Adafruit BusIO](https://github.com/adafruit/Adafruit_BusIO) | MIT | |
 | [ArduinoJson](https://github.com/bblanchon/ArduinoJson) | MIT | |
-| Tom Thumb 3×5 (в Adafruit GFX, `Fonts/TomThumb.h`) | BSD-3-Clause | © 1999 Brian J. Swetland, Vassilii Khachaturov; доработки Robey Pointer |
 | X11 misc-fixed 4×6 (`firmware/src/Font4x6.h`, `tools/fonts/4x6.bdf`) | Public domain | «Public domain font. Share and enjoy.» |
 
 LGPL: исходники прошивки полностью в этом репозитории. Образ из Releases пересобирается
