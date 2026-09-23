@@ -81,12 +81,12 @@ async fn notify(text: String, color: String, icon: Option<String>, link: State<'
 }
 
 #[tauri::command]
-async fn icon_preview(id: String, link: State<'_, Arc<Link>>) -> Result<Vec<String>, String> {
+async fn icon_preview(id: String, link: State<'_, Arc<Link>>) -> Result<icons::IconPreview, String> {
     let l = link.inner().clone();
-    let px = tauri::async_runtime::spawn_blocking(move || l.icons.get(id.trim()))
+    let icon = tauri::async_runtime::spawn_blocking(move || l.icons.get(id.trim()))
         .await
         .map_err(|e| e.to_string())??;
-    Ok(icons::to_css(&px))
+    Ok(icons::preview(&icon))
 }
 
 #[tauri::command]

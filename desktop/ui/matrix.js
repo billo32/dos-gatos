@@ -42,8 +42,8 @@
       this.timer = null;
     }
 
-    // icon: 64 CSS colors ("" = off) or null
-    // weekday: 0..6 (Mon..Sun) — полоса дней недели под часами
+    // icon: { frames: [[64 CSS colors ("" = off)], ...], delays: [ms, ...] } or null
+    // weekday: 0..6 (Mon..Sun) — weekday bar under the clock
     show({ text, color = "#ffffff", font = "3x5", icon = null, weekday = null }) {
       clearInterval(this.timer);
       const raw = text;
@@ -51,23 +51,22 @@
       const x0 = icon ? ICON + 1 : 0;
       const area = W - x0;
       const w = textWidth(font, raw);
-      const frame = (x) => {
+      const scroll = w > area;
+      const animated = icon && icon.frames.length > 1;
+      const t0 = performance.now();
+      let x = scroll ? W : x0 + Math.floor((area - w + 1) / 2);
+      const frame = () => {
         const px = new Array(W * H).fill("");
         drawText(px, font, text, x, color, x0);
-        if (icon) icon.forEach((c, i) => { if (c) px[(i >> 3) * W + (i & 7)] = c; });
+        if (icon) iconFrame(icon, performance.now() - t0).forEach((c, i) => { if (c) px[(i >> 3) * W + (i & 7)] = c; });
         if (weekday != null) for (let d = 0; d < 7; d++) for (let k = 0; k < 3; k++) px[7 * W + 2 + d * 4 + k] = d === weekday ? WEEK_ON : WEEK_OFF;
         this.paint(px);
       };
-      if (w <= area) {
-        frame(x0 + Math.floor((area - w + 1) / 2));
-        return;
-      }
-      let x = W;
-      frame(x);
+      frame();
+      if (!scroll && !animated) return;
       this.timer = setInterval(() => {
-        x -= 1;
-        if (x < x0 - w) x = W;
-        frame(x);
+        if (scroll) { x -= 1; if (x < x0 - w) x = W; }
+        frame();
       }, 45);
     }
 
@@ -98,11 +97,29 @@
     }
   }
 
+  // same frame choice as Icon::frame() in the firmware
+  function iconFrame(icon, ms) {
+    const { frames, delays } = icon;
+    if (frames.length <= 1) return frames[0] || [];
+    const total = delays.reduce((a, b) => a + b, 0);
+    if (!total) return frames[0];
+    let t = ms % total;
+    for (let i = 0; i < frames.length; i++) { if (t < delays[i]) return frames[i]; t -= delays[i]; }
+    return frames[frames.length - 1];
+  }
+
+  const iconTimers = new WeakMap();
   function paintIcon(canvas, icon) {
+    clearInterval(iconTimers.get(canvas));
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, 8, 8);
-    if (!icon) return;
-    icon.forEach((c, i) => { if (c) { ctx.fillStyle = c; ctx.fillRect(i & 7, i >> 3, 1, 1); } });
+    const draw = (px) => {
+      ctx.clearRect(0, 0, 8, 8);
+      px.forEach((c, i) => { if (c) { ctx.fillStyle = c; ctx.fillRect(i & 7, i >> 3, 1, 1); } });
+    };
+    if (!icon) { ctx.clearRect(0, 0, 8, 8); return; }
+    const t0 = performance.now();
+    draw(iconFrame(icon, 0));
+    if (icon.frames.length > 1) iconTimers.set(canvas, setInterval(() => draw(iconFrame(icon, performance.now() - t0)), 40));
   }
 
   window.PixelMatrix = { Matrix, textWidth, paintIcon };

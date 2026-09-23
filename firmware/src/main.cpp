@@ -88,10 +88,24 @@ int textWidth(int8_t f, const String &s) {
   return w - 1;
 }
 
-// ---------- icons (8×8 RGB565, LittleFS /i/<id>.bin) ----------
+// ---------- icons (8×8 RGB565, до 16 кадров, LittleFS /i/<id>.bin) ----------
+// Файл: v1 — 128 байт (один кадр, 0.4.0); v2 — 'I','2',n,0, задержки n×uint16 (мс), кадры n×128 байт.
+#define ICON_MAX_FRAMES 16
 struct Icon {
   bool ok = false;
-  uint16_t px[ICON_PX];
+  uint8_t n = 0;
+  uint32_t total = 0;                        // сумма задержек, мс
+  uint16_t delay[ICON_MAX_FRAMES];
+  uint16_t px[ICON_MAX_FRAMES][ICON_PX];
+  const uint16_t *frame() const {            // текущий кадр анимации
+    if (n <= 1 || !total) return px[0];
+    uint32_t t = millis() % total;
+    for (uint8_t i = 0; i < n; i++) {
+      if (t < delay[i]) return px[i];
+      t -= delay[i];
+    }
+    return px[n - 1];
+  }
 };
 
 bool validIconId(const String &id) {
@@ -105,30 +119,57 @@ bool loadIcon(const String &id, Icon &ic) {
   if (!validIconId(id)) return false;
   File f = LittleFS.open("/i/" + id + ".bin", "r");
   if (!f) return false;
-  ic.ok = f.read((uint8_t *)ic.px, sizeof(ic.px)) == sizeof(ic.px);
+  size_t size = f.size();
+  if (size == ICON_PX * 2) {                  // v1
+    ic.n = 1;
+    ic.delay[0] = 1000;
+    ic.ok = f.read((uint8_t *)ic.px[0], ICON_PX * 2) == ICON_PX * 2;
+  } else {
+    uint8_t h[4];
+    if (f.read(h, 4) == 4 && h[0] == 'I' && h[1] == '2' && h[2] >= 1 && h[2] <= ICON_MAX_FRAMES) {
+      ic.n = h[2];
+      size_t frames = (size_t)ic.n * ICON_PX * 2;
+      ic.ok = size == 4 + ic.n * 2 + frames &&
+              f.read((uint8_t *)ic.delay, ic.n * 2) == ic.n * 2u &&
+              f.read((uint8_t *)ic.px, frames) == frames;
+    }
+  }
   f.close();
+  ic.total = 0;
+  if (ic.ok) for (uint8_t i = 0; i < ic.n; i++) ic.total += ic.delay[i];
   return ic.ok;
 }
 
-bool saveIcon(const String &id, const char *hex) {
-  if (!validIconId(id) || !hex || strlen(hex) != ICON_PX * 4) return false;
-  uint16_t px[ICON_PX];
-  for (int i = 0; i < ICON_PX; i++) {
+bool saveIcon(const String &id, const char *hex, int n, JsonArrayConst delays) {
+  if (!validIconId(id) || !hex || n < 1 || n > ICON_MAX_FRAMES || strlen(hex) != (size_t)n * ICON_PX * 4) return false;
+  const size_t size = 4 + n * 2 + (size_t)n * ICON_PX * 2;
+  uint8_t *buf = (uint8_t *)malloc(size);
+  if (!buf) return false;
+  buf[0] = 'I'; buf[1] = '2'; buf[2] = n; buf[3] = 0;
+  uint16_t *dl = (uint16_t *)(buf + 4);
+  for (int i = 0; i < n; i++) dl[i] = constrain((int)(delays[i] | 100), 20, 60000);
+  uint16_t *px = (uint16_t *)(buf + 4 + n * 2);
+  for (int i = 0; i < n * ICON_PX; i++) {
     char b[5] = {hex[i * 4], hex[i * 4 + 1], hex[i * 4 + 2], hex[i * 4 + 3], 0};
     px[i] = (uint16_t)strtoul(b, nullptr, 16);
   }
   const String path = "/i/" + id + ".bin";
-  if (LittleFS.exists(path)) {                 // та же иконка уже лежит — флеш не трогаем
-    uint16_t old[ICON_PX];
-    File r = LittleFS.open(path, "r");
-    bool same = r && r.read((uint8_t *)old, sizeof(old)) == sizeof(old) && !memcmp(old, px, sizeof(px));
-    if (r) r.close();
-    if (same) return true;
+  bool ok = false, same = false;
+  File r = LittleFS.open(path, "r");                  // та же иконка уже лежит — флеш не трогаем
+  if (r && r.size() == size) {
+    uint8_t *old = (uint8_t *)malloc(size);
+    same = old && r.read(old, size) == size && !memcmp(old, buf, size);
+    free(old);
   }
-  File f = LittleFS.open(path, "w", true);
-  if (!f) return false;
-  bool ok = f.write((uint8_t *)px, sizeof(px)) == sizeof(px);
-  f.close();
+  if (r) r.close();
+  if (same) {
+    ok = true;
+  } else {
+    File f = LittleFS.open(path, "w", true);
+    ok = f && f.write(buf, size) == size;
+    if (f) f.close();
+  }
+  free(buf);
   return ok;
 }
 
@@ -141,7 +182,6 @@ struct DataApp {
   int8_t dec = -1;          // -1: показывать значение как есть
   int8_t font = FONT_DEFAULT;
   uint16_t color = 0xFFFF;  // RGB565
-  Icon icon;
   // runtime
   String value;
   uint32_t updatedAt = 0;
@@ -154,6 +194,7 @@ struct DataApp {
 };
 
 DataApp apps[MAX_APPS];
+Icon appIcons[MAX_APPS];      // отдельно от DataApp: 2 КБ на иконку, не копируем через DataApp()
 uint8_t appCount = 0;
 
 // ---------- state ----------
@@ -416,7 +457,8 @@ void loadAppsFromJson(JsonArrayConst arr) {
     x.font = parseFont(a["font"].as<const char *>(), FONT_DEFAULT);
     x.color = parseColor(a["color"] | "#FFFFFF", 0xFFFF);
     x.iconId = String(a["icon"] | "");
-    if (x.iconId.length()) loadIcon(x.iconId, x.icon);
+    appIcons[appCount].ok = false;
+    if (x.iconId.length()) loadIcon(x.iconId, appIcons[appCount]);
     if (x.url.length()) {
       restoreValue(appCount);             // updatedAt = 0 → покажется серым, пока не придёт свежее
       appCount++;
@@ -522,7 +564,7 @@ void onLinkUp() {
 
 void reloadIconUsers(const String &id) {
   for (uint8_t i = 0; i < appCount; i++)
-    if (apps[i].iconId == id) loadIcon(id, apps[i].icon);
+    if (apps[i].iconId == id) loadIcon(id, appIcons[i]);
 }
 
 void handleLine(char *line) {
@@ -568,7 +610,7 @@ void handleLine(char *line) {
     sendLog("apps updated: " + String(appCount));
   } else if (!strcmp(t, "icon")) {
     String id = d["id"] | "";
-    if (saveIcon(id, d["px"].as<const char *>())) reloadIconUsers(id);
+    if (saveIcon(id, d["px"].as<const char *>(), d["n"] | 1, d["d"].as<JsonArrayConst>())) reloadIconUsers(id);
     else sendLog("icon rejected: " + id);
   } else if (!strcmp(t, "bright")) {
     brightness = constrain((int)(d["v"] | 30), 1, 255);
@@ -660,7 +702,7 @@ void pollButtons() {
 void drawIcon(const Icon &ic, bool dim) {
   for (int y = 0; y < ICON_W; y++)
     for (int x = 0; x < ICON_W; x++) {
-      uint16_t c = ic.px[y * ICON_W + x];
+      uint16_t c = ic.frame()[y * ICON_W + x];
       if (c) matrix->drawPixel(x, y, dim ? dim565(c) : c);
     }
 }
@@ -739,7 +781,7 @@ void render() {
         nextApp(1);                          // данные пропали (напр. сменился apps.json)
       } else {
         bool stale = a.updatedAt == 0 || now - a.updatedAt > a.everyMs * 3;
-        drawText(formatValue(a), stale ? matrix->Color(70, 70, 70) : a.color, a.font, &a.icon, stale);
+        drawText(formatValue(a), stale ? matrix->Color(70, 70, 70) : a.color, a.font, &appIcons[current], stale);
       }
     }
   }

@@ -131,7 +131,7 @@ tail -f ~/Library/Logs/tc001-agent.log
 
 ### Иконки
 
-Агент скачивает иконку с LaMetric (первый кадр, 8×8), кэширует в `~/Library/Application Support/dev.tls1.tc001/icons/` и отправляет на часы. Часы хранят её в LittleFS, поэтому в Wi‑Fi‑режиме иконки продолжают показываться. С иконкой текст занимает правые 23 пикселя.
+Агент скачивает иконку с LaMetric (8×8; анимированные GIF — до 16 кадров с исходными задержками, более длинные прореживаются), кэширует в `~/Library/Application Support/dev.tls1.tc001/icons/` и отправляет на часы. Часы хранят её в LittleFS, поэтому в Wi‑Fi‑режиме иконки продолжают показываться. С иконкой текст занимает правые 23 пикселя.
 
 ### Шрифты
 
@@ -155,7 +155,7 @@ tail -f ~/Library/Logs/tc001-agent.log
 ## Протокол (NDJSON, 460800 бод)
 
 - device → host: `hello{fw,apps,font,wifi}`, `req{id,url,path?,find?,keep?,re?}`, `pong`, `btn`, `log`, `wifi{ssid,state,ip?,rssi?}`
-- host → device: `hello?`, `ping` (каждые 3 с), `time{epoch,tz,tzp}`, `resp{id,status,body}`, `notify{text,color,dur,icon?,font?}`, `apps`, `bright`, `icon{id,px}` (8×8 RGB565, 256 hex), `wifi{ssid,pass}`, `settings{font}`
+- host → device: `hello?`, `ping` (каждые 3 с), `time{epoch,tz,tzp}`, `resp{id,status,body}`, `notify{text,color,dur,icon?,font?}`, `apps`, `bright`, `icon{id,n,d,px}` (n кадров 8×8 RGB565, d — задержки в мс, px — n×256 hex), `wifi{ssid,pass}`, `settings{font}`
 
 `tzp` — правило часового пояса в формате POSIX (например `CET-1CEST,M3.5.0,M10.5.0/3`), агент берёт его из `/etc/localtime`. По нему часы переводят время на летнее и зимнее в Wi‑Fi‑режиме.
 

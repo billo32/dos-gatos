@@ -187,10 +187,10 @@ impl Link {
         if self.icons_sent.lock().unwrap().contains(id) {
             return Ok(());
         }
-        let px = self.icons.get(id)?;
-        self.send(&json!({"t": "icon", "id": id, "px": icons::to_hex(&px)}))?;
+        let icon = self.icons.get(id)?;
+        self.send(&json!({"t": "icon", "id": id, "n": icon.frames.len(), "d": icon.delays, "px": icons::to_hex(&icon)}))?;
         self.icons_sent.lock().unwrap().insert(id.to_string());
-        info!("icon {id} sent to the clock");
+        info!("icon {id} sent to the clock ({} frame(s))", icon.frames.len());
         Ok(())
     }
 

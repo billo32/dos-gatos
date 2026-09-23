@@ -18,7 +18,7 @@ let dirty = false;
 let lastStatus = null;
 let appsRev = null;
 let savingSelf = false;
-const iconCache = new Map(); // id -> 64 CSS colors | Error message
+const iconCache = new Map(); // id -> {frames, delays} | Error message
 const led = new Matrix($("led"));
 
 // ---------- helpers ----------
