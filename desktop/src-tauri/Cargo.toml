@@ -1,6 +1,6 @@
 [package]
 name = "tc001-agent"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2021"
 description = "Tray agent for Ulanzi TC001 USB firmware"
 license = "MIT"
