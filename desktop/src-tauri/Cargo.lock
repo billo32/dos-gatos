@@ -4081,7 +4081,7 @@ dependencies = [
 
 [[package]]
 name = "tc001-agent"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "chrono",
  "image",
