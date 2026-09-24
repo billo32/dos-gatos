@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TC001 running Dos GatOS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: {{W}}px; height: {{H}}px">
+<sc-if value="{{showBody}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; top: 0; left: {{btnL}}px; display: flex; gap: {{btnGap}}px">
+<div style="width: {{btnW}}px; height: {{btnH2}}px; background: {{btnBg}}; border-radius: {{btnR}}px {{btnR}}px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6)"></div>
+<div style="width: {{btnW}}px; height: {{btnH2}}px; background: {{btnBg}}; border-radius: {{btnR}}px {{btnR}}px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6)"></div>
+<div style="width: {{btnW}}px; height: {{btnH2}}px; background: {{btnBg}}; border-radius: {{btnR}}px {{btnR}}px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6)"></div>
+</div>
+<div style="position: absolute; left: {{dx}}px; top: {{depthTop}}px; width: {{bodyW}}px; height: {{bodyH}}px; background: {{sideBg}}; border-radius: {{bodyR}}px; box-shadow: {{dropShadow}}"></div>
+</sc-if>
+<div style="position: absolute; left: 0; top: {{btnH}}px; width: {{bodyW}}px; height: {{bodyH}}px; box-sizing: border-box; padding: {{rim}}px; background: {{bodyBg}}; border-radius: {{bodyR}}px; box-shadow: {{bodyShadow}}">
+<div style="width: 100%; height: 100%; box-sizing: border-box; padding: {{vp}}px {{hp}}px; background: linear-gradient(180deg, #18181B 0%, #070708 36%, #030304 100%); border-radius: {{faceR}}px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(0,0,0,0.7)">
+<div role="img" aria-label="{{aria}}" style="display: grid; grid-template-columns: repeat(32, {{s}}px); grid-auto-rows: {{s}}px; gap: {{g}}px">
+<sc-for list="{{pixels}}" as="p" hint-placeholder-count="256">
+<div style="width: {{s}}px; height: {{s}}px; border-radius: {{pr}}px; background: {{p.c}}; box-shadow: {{p.sh}}"></div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["boot","clock","weather","crypto","calendar","notify","ci","timer","music","home","flash","connect","blank","custom"],"default":"boot"},"text":{"editor":"text","default":"21C"},"color":{"editor":"color","default":"#FFB23F"},"icon":{"editor":"enum","options":["","sun","rain","chart","cal","chat","check","tomato","note","house"],"default":"sun"},"progress":{"editor":"int","min":0,"max":100,"default":40},"scale":{"editor":"int","min":3,"max":32,"default":16},"body":{"editor":"enum","options":["white","graphite","none"],"default":"white"},"animate":{"editor":"boolean","default":true},"autoplay":{"editor":"boolean","default":true},"$preview":{"width":661,"height":219}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { t: 0 };
+  }
+  componentDidMount() {
+    if ((this.props.animate ?? true) !== false) {
+      this.iv = setInterval(() => this.setState((st) => ({ t: (st.t || 0) + 1 })), 700);
+    }
+  }
+  componentWillUnmount() {
+    if (this.iv) clearInterval(this.iv);
+  }
+  glyphs() {
+    if (this._gl) return this._gl;
+    this._gl = {
+      '0':['111','101','101','101','111'],'1':['010','110','010','010','111'],'2':['111','001','111','100','111'],
+      '3':['111','001','111','001','111'],'4':['101','101','111','001','001'],'5':['111','100','111','001','111'],
+      '6':['111','100','111','101','111'],'7':['111','001','010','010','010'],'8':['111','101','111','101','111'],
+      '9':['111','101','111','001','111'],
+      ':':['0','1','0','1','0'],'|':['0','0','0','0','0'],'.':['0','0','0','0','1'],
+      '%':['101','001','010','100','101'],'+':['000','010','111','010','000'],'-':['000','000','111','000','000'],
+      '°':['11','11','00','00','00'],' ':['00','00','00','00','00'],
+      'A':['111','101','111','101','101'],'B':['110','101','110','101','110'],'C':['111','100','100','100','111'],
+      'D':['110','101','101','101','110'],'E':['111','100','110','100','111'],'F':['111','100','110','100','100'],
+      'G':['111','100','101','101','111'],'H':['101','101','111','101','101'],'I':['111','010','010','010','111'],
+      'L':['100','100','100','100','111'],'M':['101','111','111','101','101'],'N':['110','101','101','101','101'],
+      'O':['111','101','101','101','111'],'P':['111','101','111','100','100'],'R':['111','101','110','101','101'],
+      'S':['111','100','111','001','111'],'T':['111','010','010','010','010'],'U':['101','101','101','101','111'],
+      'W':['101','101','111','111','101'],'Y':['101','101','010','010','010'],
+      'K':['101','101','110','101','101'],'V':['101','101','101','101','010'],'X':['101','101','010','101','101'],
+      'Z':['111','001','010','100','111'],'J':['001','001','001','101','111'],'Q':['111','101','101','111','001'],
+      '$':['011','110','010','011','110'],'/':['001','001','010','100','100'],',':['0','0','0','1','1']
+    };
+    return this._gl;
+  }
+  compose(screen, t) {
+    const P = { w:'#FFF1DC', o:'#FF7A3D', y:'#FFD23F', g:'#3DDC84', r:'#FF4B4B', b:'#4DA3FF', p:'#B57BFF', k:'#4A4A52', m:'#FF7AC8' };
+    const buf = new Array(256).fill(null);
+    const GL = this.glyphs();
+    const set = (x, y, c) => { if (x >= 0 && x < 32 && y >= 0 && y < 8) buf[y * 32 + x] = c; };
+    const sprite = (rows, x, y, pal) => rows.forEach((row, r) => { for (let c = 0; c < row.length; c++) { const ch = row[c]; if (ch !== '.') set(x + c, y + r, (pal && pal[ch]) || P[ch]); } });
+    const tw = (txt) => { let w = 0; for (let i = 0; i < txt.length; i++) { w += (GL[txt[i]] || GL[' '])[0].length + (i < txt.length - 1 ? 1 : 0); } return w; };
+    const text = (txt, x, y, col) => { for (let i = 0; i < txt.length; i++) { const gl = GL[txt[i]] || GL[' ']; for (let r = 0; r < 5; r++) for (let c = 0; c < gl[r].length; c++) if (gl[r][c] === '1') set(x + c, y + r, col); x += gl[0].length + 1; } };
+    const iconText = (txt, col) => text(txt, 9 + Math.floor((23 - tw(txt)) / 2), 1, col);
+    const CAT = ['X.....X','XX...XX','XXXXXXX','X.XXX.X','XXXXXXX','.XXXXX.'];
+    const CAT_BLINK = ['X.....X','XX...XX','XXXXXXX','XXXXXXX','XXXXXXX','.XXXXX.'];
+    const CAT_WINK = ['X.....X','XX...XX','XXXXXXX','X.XXXXX','XXXXXXX','.XXXXX.'];
+    const I = {
+      sun: ['...y....','.y.y.y..','..ooo...','yyoooyy.','..ooo...','.y.y.y..','...y....','........'],
+      chart: ['........','.....ggg','......gg','.....g.g','g...g...','.g.g....','..g.....','........'],
+      cal: ['.k....k.','rrrrrrrr','rrrrrrrr','wwwwwwww','wkwwkwww','wwwwwwww','wwkwwkww','wwwwwwww'],
+      chat: ['.bbbbbb.','bbbbbbbb','bwbbwbbw','bbbbbbbb','.bbbbbb.','.bb.....','b.......','........'],
+      check: ['........','......g.','.....gg.','g...gg..','gg.gg...','.ggg....','..g.....','........'],
+      tomato: ['...gg...','..rggr..','.rrrrrr.','rrrrrrrr','rrrrrrrr','rrrrrrrr','.rrrrrr.','..rrrr..'],
+      note: ['..pppppp','..pppppp','..p....p','..p....p','..p....p','ppp..ppp','ppp..ppp','........'],
+      house: ['...o....','..ooo...','.ooooo..','ooooooo.','.wwwww..','.ww.ww..','.ww.ww..','........'],
+      rain: ['..www...','.wwwww..','wwwwwwww','wwwwwwww','........','.b..b..b','b..b..b.','........']
+    };
+    if (screen === 'boot') {
+      sprite(t % 5 === 0 ? CAT_BLINK : CAT, 1, 1, { X: P.w });
+      sprite(CAT_WINK, 9, 2, { X: P.o });
+      text('HOLA', 17, 2, P.w);
+    } else if (screen === 'clock') {
+      text(t % 2 === 0 ? '12:45' : '12|45', 7, 1, P.w);
+      for (let d = 0; d < 7; d++) for (let i = 0; i < 3; i++) set(2 + d * 4 + i, 7, d === 2 ? P.o : P.k);
+    } else if (screen === 'weather') {
+      sprite(I.sun, 0, 0); iconText('24°', P.w);
+    } else if (screen === 'crypto') {
+      sprite(I.chart, 0, 0);
+      if (t % 6 < 3) iconText('BTC', P.w); else iconText('+2.4%', P.g);
+    } else if (screen === 'calendar') {
+      sprite(I.cal, 0, 0);
+      if (t % 6 < 3) iconText('14:30', P.w); else iconText('SYNC', P.o);
+    } else if (screen === 'notify') {
+      sprite(I.chat, 0, 0); iconText('3 NEW', P.w);
+      for (let i = 0; i < 23; i++) set(9 + i, 7, i < ((t * 3) % 24) ? P.b : null);
+    } else if (screen === 'ci') {
+      sprite(I.check, 0, 0); iconText('PASS', P.g);
+    } else if (screen === 'timer') {
+      const ss = 59 - (t % 60);
+      sprite(I.tomato, 0, 0); iconText('24:' + (ss < 10 ? '0' + ss : ss), P.w);
+      for (let i = 0; i < 23; i++) set(9 + i, 7, i < 22 ? P.r : P.k);
+    } else if (screen === 'music') {
+      sprite(I.note, 0, 0);
+      for (let i = 0; i < 11; i++) {
+        const h = 1 + ((i * 37 + t * 13 + i * i * 7) % 6);
+        for (let r = 0; r < h; r++) { const y = 7 - r; set(11 + i * 2, y, y >= 6 ? P.p : (y >= 4 ? '#D77BFF' : P.m)); }
+      }
+    } else if (screen === 'home') {
+      sprite(I.house, 0, 0); iconText('21.5°', P.w);
+    } else if (screen === 'flash') {
+      const pr = Math.max(0, Math.min(100, Number(this.props.progress ?? ((t * 7) % 101))));
+      const lbl = pr >= 100 ? 'DONE' : (pr < 10 ? pr + '%' : pr + '%');
+      text(lbl, Math.floor((32 - tw(lbl)) / 2), 1, pr >= 100 ? P.g : P.w);
+      const fill = Math.round(32 * pr / 100);
+      for (let i = 0; i < 32; i++) set(i, 7, i < fill ? P.o : P.k);
+    } else if (screen === 'custom') {
+      const txt = String(this.props.text ?? '21C').toUpperCase();
+      const col = this.props.color || P.w;
+      const ic = this.props.icon;
+      if (ic && I[ic]) { sprite(I[ic], 0, 0); iconText(txt, col); } else text(txt, Math.floor((32 - tw(txt)) / 2), 1, col);
+    } else if (screen === 'connect') {
+      text('USB', Math.floor((32 - tw('USB')) / 2), 1, t % 2 === 0 ? P.w : P.k);
+    }
+    return buf;
+  }
+  renderVals() {
+    const list = ['boot','clock','weather','crypto','calendar','notify','ci','timer','music','home'];
+    const t = this.state.t || 0;
+    const autoplay = (this.props.autoplay ?? true) === true;
+    const screen = autoplay ? list[Math.floor(t / 5) % list.length] : (this.props.screen ?? 'boot');
+    const s = Math.max(2, Number(this.props.scale ?? 16));
+    const body = this.props.body ?? 'white';
+    const bare = body === 'none';
+    const white = body !== 'graphite';
+    const g = Math.max(1, Math.round(s * 0.16));
+    const mW = 32 * s + 31 * g, mH = 8 * s + 7 * g;
+    const hp = bare ? Math.round(s * 0.5) : Math.round(s * 1.0);
+    const vp = bare ? Math.round(s * 0.5) : Math.round(s * 1.5);
+    const rim = bare ? 0 : Math.max(2, Math.round(s * 0.3));
+    const dx = bare ? 0 : Math.round(s * 0.9), dy = bare ? 0 : Math.round(s * 0.35);
+    const btnH = bare ? 0 : Math.round(s * 0.4);
+    const bodyW = mW + 2 * hp + 2 * rim, bodyH = mH + 2 * vp + 2 * rim;
+    const faceR = bare ? Math.round(s * 0.6) : Math.round(s * 0.9);
+    const btnW = Math.round(s * 2.2), btnGap = Math.round(s * 0.8);
+    const buf = this.compose(screen, t);
+    const glow = s >= 6 ? Math.round(s * 0.3) : 0;
+    const pixels = buf.map((c) => c
+      ? { c: c, sh: glow ? ('0 0 ' + glow + 'px ' + c + '66') : 'none' }
+      : { c: '#0D0D0F', sh: 'none' });
+    return {
+      W: bodyW + dx, H: btnH + bodyH + dy,
+      bodyW, bodyH, btnH, btnH2: btnH + 2, rim, hp, vp, s, g, dx,
+      depthTop: btnH + dy,
+      pr: Math.max(0, Math.round(s * 0.08)),
+      faceR,
+      bodyR: faceR + rim,
+      bodyBg: bare ? 'transparent' : (white ? '#FBFAF7' : '#2A2A2E'),
+      sideBg: white ? '#E1DDD5' : '#151517',
+      dropShadow: dx + 'px ' + s + 'px ' + (s * 2.5) + 'px rgba(28,26,23,0.18)',
+      bodyShadow: bare ? 'none' : (white
+        ? 'inset 0 0 0 1px rgba(28,26,23,0.07), inset 0 -2px 0 rgba(28,26,23,0.05)'
+        : 'inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.12)'),
+      showBody: !bare,
+      btnW, btnGap, btnR: Math.round(s * 0.3),
+      btnL: bodyW - (3 * btnW + 2 * btnGap) - s * 3,
+      btnBg: white ? '#ECE9E3' : '#1B1B1E',
+      pixels,
+      aria: 'Clock screen: ' + screen
+    };
+  }
+}
+</script>
+</body>
+</html>

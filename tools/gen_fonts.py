@@ -10,7 +10,7 @@
 
 Результат:
   firmware/src/Font4x6.h, firmware/src/FontBlocky3x5.h — GFXfont (5x7 встроен в Adafruit GFX)
-  desktop/ui/fonts.js      — все три шрифта для рендера превью 32×8 в окне настроек
+  desktop/web/src/clock/fonts.json — все три шрифта для превью 32×8 в приложении
 
 Знак градуса: в 5x7 это символ 0xF8 (CP437), в 3x5 и 4x6 — глиф '`'. Прошивка и превью
 заменяют «°» на него перед отрисовкой.
@@ -157,10 +157,8 @@ def main():
     (ROOT / "firmware/src/FontBlocky3x5.h").write_text(
         gfx_header(fonts["3x5"], "FontBlocky3x5", "dos-gatos Blocky 3x5, MIT (tools/fonts/blocky3x5.txt); '`' = degree sign"))
     js = {k: {"baseline": f["baseline"], "glyphs": {str(c): g for c, g in f["glyphs"].items()}} for k, f in fonts.items()}
-    (ROOT / "desktop/ui/fonts.js").write_text(
-        "// Сгенерировано tools/gen_fonts.py. 3x5: dos-gatos Blocky (MIT), 4x6: X11 misc-fixed (public domain),\n"
-        "// 5x7: Adafruit GFX glcdfont (BSD-2).\n"
-        "window.PIXEL_FONTS = " + json.dumps(js, separators=(",", ":")) + ";\n")
+    # 3x5: dos-gatos Blocky (MIT), 4x6: X11 misc-fixed (public domain), 5x7: Adafruit GFX glcdfont (BSD-2)
+    (ROOT / "desktop/web/src/clock/fonts.json").write_text(json.dumps(js, separators=(",", ":")) + "\n")
     for k, f in fonts.items():
         widths = sorted({g["adv"] for g in f["glyphs"].values()})
         print(f"{k}: {len(f['glyphs'])} glyphs, advance {widths}")

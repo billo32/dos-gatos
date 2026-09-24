@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dos GatOS mark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="img" aria-label="Dos GatOS — two pixel cats" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: repeat(15, {{px}}px); grid-auto-rows: {{px}}px; gap: {{gap}}px">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="105">
+<div style="width: {{px}}px; height: {{px}}px; border-radius: {{r}}px; background: {{c}}"></div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"px":{"editor":"int","min":1,"max":64,"default":24},"variant":{"editor":"enum","options":["color","light","mono","onOrange"],"default":"color"},"$preview":{"width":402,"height":186}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const px = Math.max(1, Number(this.props.px ?? 24));
+    const gap = px >= 4 ? Math.max(1, Math.round(px * 0.12)) : 0;
+    const v = this.props.variant ?? 'color';
+    const pal = {
+      color: ['#1C1A17', '#F0642D'],
+      light: ['#FAF7F2', '#F0642D'],
+      mono: ['#1C1A17', '#1C1A17'],
+      onOrange: ['#1C1A17', '#FAF7F2']
+    }[v] || ['#1C1A17', '#F0642D'];
+    const A = ['X.....X','XX...XX','XXXXXXX','X.XXX.X','XXXXXXX','.XXXXX.'];
+    const B = ['X.....X','XX...XX','XXXXXXX','X.XXXXX','XXXXXXX','.XXXXX.'];
+    const cells = new Array(105).fill('transparent');
+    A.forEach((row, y) => { for (let x = 0; x < 7; x++) if (row[x] === 'X') cells[y * 15 + x] = pal[0]; });
+    B.forEach((row, y) => { for (let x = 0; x < 7; x++) if (row[x] === 'X') cells[(y + 1) * 15 + x + 8] = pal[1]; });
+    return {
+      px, gap, cells,
+      r: Math.round(px * 0.18),
+      W: 15 * px + 14 * gap,
+      H: 7 * px + 6 * gap
+    };
+  }
+}
+</script>
+</body>
+</html>

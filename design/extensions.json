@@ -1,0 +1,110 @@
+[
+  {
+    "id": "weather",
+    "name": "Weather",
+    "cat": "weather",
+    "screen": "weather",
+    "official": true,
+    "src": "online",
+    "text": "Open‑Meteo forecast, no API key. Temperature, precipitation, wind."
+  },
+  {
+    "id": "crypto",
+    "name": "Crypto ticker",
+    "cat": "finance",
+    "screen": "crypto",
+    "official": false,
+    "src": "online",
+    "text": "Up to 10 coins in rotation, 24h change in color."
+  },
+  {
+    "id": "ci",
+    "name": "CI status",
+    "cat": "dev",
+    "screen": "ci",
+    "official": true,
+    "src": "online",
+    "text": "GitHub Actions and GitLab CI. Blinks when a build fails."
+  },
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "cat": "time",
+    "screen": "calendar",
+    "official": true,
+    "src": "online",
+    "text": "Any iCal link. Reminds you 5 minutes before a meeting."
+  },
+  {
+    "id": "pomodoro",
+    "name": "Pomodoro",
+    "cat": "productivity",
+    "screen": "timer",
+    "official": false,
+    "src": "device",
+    "text": "25/5 cycles started from the clock’s button, with daily stats."
+  },
+  {
+    "id": "music",
+    "name": "Now playing",
+    "cat": "media",
+    "screen": "music",
+    "official": true,
+    "src": "mac",
+    "text": "Track and equalizer from your Mac over USB."
+  },
+  {
+    "id": "ha",
+    "name": "Home Assistant",
+    "cat": "home",
+    "screen": "home",
+    "official": false,
+    "src": "lan",
+    "text": "Any sensor or event, with color changes at thresholds."
+  },
+  {
+    "id": "notify",
+    "name": "macOS notifications",
+    "cat": "productivity",
+    "screen": "notify",
+    "official": true,
+    "src": "mac",
+    "text": "Forward notifications from the apps you choose."
+  },
+  {
+    "id": "worldclock",
+    "name": "World clock",
+    "cat": "time",
+    "screen": "clock",
+    "official": true,
+    "src": "device",
+    "text": "Up to four time zones, cycling with city codes."
+  },
+  {
+    "id": "stocks",
+    "name": "Stock watchlist",
+    "cat": "finance",
+    "screen": "crypto",
+    "official": false,
+    "src": "online",
+    "text": "Your tickers with daily change and a sparkline row."
+  },
+  {
+    "id": "uptime",
+    "name": "Uptime monitor",
+    "cat": "dev",
+    "screen": "ci",
+    "official": false,
+    "src": "online",
+    "text": "Pings your endpoints and turns red when one goes down."
+  },
+  {
+    "id": "air",
+    "name": "Air quality",
+    "cat": "home",
+    "screen": "home",
+    "official": false,
+    "src": "online",
+    "text": "AQI and PM2.5 for your area, color‑coded."
+  }
+]

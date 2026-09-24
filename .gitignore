@@ -20,3 +20,4 @@ dist/
 # мусор
 .trash/
 .DS_Store
+desktop/dist-web/

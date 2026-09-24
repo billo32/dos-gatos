@@ -1,13 +1,13 @@
 [package]
-name = "tc001-agent"
-version = "0.4.3"
+name = "dos-gatos"
+version = "0.5.0"
 edition = "2021"
-description = "Tray agent for Ulanzi TC001 USB firmware"
+description = "Dos GatOS — menu bar app for the Ulanzi TC001 clock"
 license = "MIT"
 repository = "https://github.com/billo32/dos-gatos"
 
 [lib]
-name = "tc001_agent_lib"
+name = "dos_gatos_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -17,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serialport = "4.6"

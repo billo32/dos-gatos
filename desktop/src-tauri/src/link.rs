@@ -14,7 +14,8 @@ use std::time::{Duration, Instant};
 
 use crate::extract::extract;
 use crate::icons::{self, IconStore};
-use crate::{info, warn};
+use crate::settings::{self, Settings};
+use crate::{error, info, warn};
 
 pub const BAUD: u32 = 460_800; // CH340 on macOS can't do 921600 reliably
 const KNOWN_USB_IDS: &[(u16, u16)] = &[(0x1A86, 0x7523), (0x1A86, 0x55D4), (0x10C4, 0xEA60)];
@@ -29,6 +30,8 @@ pub struct AppValue {
     pub value: Option<String>,
     pub status: u16,
     pub at: String,
+    /// why the last poll gave no value (network error, HTTP status, nothing matched)
+    pub error: Option<String>,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -46,12 +49,16 @@ pub struct Status {
     pub font: Option<String>,
     /// {ssid, state: off|connecting|connected, ip?, rssi?} as reported by the clock
     pub wifi: Option<Value>,
+    /// name of the screen the clock is showing ("clock" or a source name), reported by fw ≥ 0.5
+    pub screen: Option<String>,
 }
 
 type Listener = Box<dyn Fn(&Status) + Send + Sync>;
 
 pub struct Link {
     pub apps_path: PathBuf,
+    pub settings_path: PathBuf,
+    settings: Mutex<Settings>,
     writer: Mutex<Option<Box<dyn SerialPort>>>,
     status: Mutex<Status>,
     last_rx: Mutex<Option<Instant>>,
@@ -70,7 +77,7 @@ pub fn local_tz_posix() -> Option<String> {
     tz_posix_from(std::path::Path::new("/etc/localtime"))
 }
 
-fn tz_posix_from(path: &std::path::Path) -> Option<String> {
+pub fn tz_posix_from(path: &std::path::Path) -> Option<String> {
     let bytes = std::fs::read(path).ok()?;
     if !bytes.starts_with(b"TZif") || bytes.get(4).copied().unwrap_or(0) < b'2' {
         return None;
@@ -84,7 +91,7 @@ fn tz_posix_from(path: &std::path::Path) -> Option<String> {
 }
 
 impl Link {
-    pub fn new(apps_path: PathBuf, icon_dir: PathBuf) -> Arc<Self> {
+    pub fn new(apps_path: PathBuf, settings_path: PathBuf, icon_dir: PathBuf) -> Arc<Self> {
         let http = reqwest::blocking::Client::builder()
             .user_agent("dos-gatos-agent/0.4")
             .timeout(Duration::from_secs(20))
@@ -92,6 +99,8 @@ impl Link {
             .expect("http client");
         let link = Arc::new(Self {
             apps_path,
+            settings: Mutex::new(Settings::load(&settings_path)),
+            settings_path,
             writer: Mutex::new(None),
             status: Mutex::new(Status::default()),
             last_rx: Mutex::new(None),
@@ -131,6 +140,40 @@ impl Link {
         self.update(|s| s.api_error = e);
     }
 
+    pub fn settings(&self) -> Settings {
+        self.settings.lock().unwrap().clone()
+    }
+
+    /// Save settings and push what changed to the clock. Returns whether the clock got it now
+    /// (if not, everything is re-sent on the next hello).
+    pub fn save_settings(&self, new: Settings) -> Result<bool, String> {
+        if let Some(tz) = &new.tz {
+            if !settings::valid_tz(tz) {
+                return Err(format!("unknown time zone {tz}"));
+            }
+        }
+        let old = std::mem::replace(&mut *self.settings.lock().unwrap(), new.clone());
+        new.save(&self.settings_path)?;
+        let mut sent = true;
+        if old.clock != new.clock {
+            sent &= self.send(&new.clock_msg(&self.read_apps().unwrap_or_default())).is_ok();
+        }
+        if old.brightness != new.brightness {
+            sent &= self.send(&json!({"t": "bright", "v": new.device_brightness()})).is_ok();
+        }
+        if old.tz != new.tz {
+            info!("time zone: {}", new.tz.as_deref().unwrap_or("same as the Mac"));
+            sent &= self.send_time();
+        }
+        Ok(sent)
+    }
+
+    pub fn restart_clock(&self) -> Result<(), String> {
+        self.send(&json!({"t": "settings", "restart": true}))?;
+        info!("restart requested");
+        Ok(())
+    }
+
     pub fn request_reconnect(&self) {
         self.reconnect.store(true, Ordering::SeqCst);
     }
@@ -161,7 +204,7 @@ impl Link {
             return Err("expected an array of apps".into());
         }
         let text = serde_json::to_string_pretty(apps).map_err(|e| e.to_string())?;
-        std::fs::write(&self.apps_path, text + "\n").map_err(|e| e.to_string())?;
+        settings::write_atomic(&self.apps_path, (text + "\n").as_bytes())?;
         self.remember_names(apps);
         let names: Vec<String> = self.url_names.lock().unwrap().values().cloned().collect();
         self.update(|s| {
@@ -170,6 +213,7 @@ impl Link {
         });
         match self.send(&json!({"t": "apps", "apps": apps})) {
             Ok(()) => {
+                let _ = self.send(&self.settings().clock_msg(apps)); // clock position depends on enabled sources
                 info!("apps saved and sent to the clock ({})", apps.as_array().map_or(0, |a| a.len()));
                 self.push_icons_async(icon_ids(apps));
                 Ok(true)
@@ -232,16 +276,19 @@ impl Link {
         Ok(())
     }
 
-    fn send_time(&self) {
+    fn send_time(&self) -> bool {
         let tz = chrono::Local::now().offset().local_minus_utc();
         let epoch = chrono::Utc::now().timestamp();
         let mut msg = json!({"t": "time", "epoch": epoch, "tz": tz});
-        if let Some(p) = local_tz_posix() {
+        let zone = self.settings.lock().unwrap().tz.clone();
+        if let Some(p) = zone.as_deref().and_then(settings::tz_posix).or_else(local_tz_posix) {
             msg["tzp"] = json!(p);
         }
-        if self.send(&msg).is_ok() {
+        let ok = self.send(&msg).is_ok();
+        if ok {
             *self.last_time_sync.lock().unwrap() = Some(Instant::now());
         }
+        ok
     }
 
     // ---------- protocol ----------
@@ -274,8 +321,10 @@ impl Link {
                 self.icons_sent.lock().unwrap().clear();
                 let font = msg.get("font").and_then(Value::as_str).map(str::to_string);
                 let wifi = msg.get("wifi").cloned();
+                let screen = msg.get("scr").and_then(Value::as_str).map(str::to_string);
                 self.update(|s| {
                     s.fw = Some(fw);
+                    s.screen = screen;
                     if font.is_some() {
                         s.font = font;
                     }
@@ -284,6 +333,9 @@ impl Link {
                     }
                 });
                 self.send_time();
+                let st = self.settings();
+                let _ = self.send(&st.clock_msg(&self.read_apps().unwrap_or_default()));
+                let _ = self.send(&json!({"t": "bright", "v": st.device_brightness()}));
                 match self.read_apps() {
                     Ok(apps) => {
                         self.remember_names(&apps);
@@ -301,6 +353,10 @@ impl Link {
                 }
                 info!("device wifi: {}", w);
                 self.update(|s| s.wifi = Some(w));
+            }
+            "scr" => {
+                let name = msg.get("name").and_then(Value::as_str).map(str::to_string);
+                self.update(|s| s.screen = name);
             }
             "req" => {
                 let me = Arc::clone(self);
@@ -327,14 +383,14 @@ impl Link {
     }
 
     /// Run a request with the extraction options from `app` (same format as req / apps.json).
+    /// Returns (HTTP status, extracted value, response body).
     pub fn run_query(&self, app: &Value) -> (u16, Result<Option<String>, String>, String) {
         let url = app.get("url").and_then(Value::as_str).unwrap_or("");
         match self.fetch(url) {
             Err(e) => (0, Err(e), String::new()),
             Ok((status, text)) => {
-                let preview: String = text.chars().take(400).collect();
                 if !(200..300).contains(&status) {
-                    return (status, Ok(None), preview);
+                    return (status, Ok(None), text);
                 }
                 let keep = app.get("keep").and_then(Value::as_u64).unwrap_or(128) as usize;
                 let r = extract(
@@ -344,7 +400,7 @@ impl Link {
                     keep,
                     app.get("re").and_then(Value::as_str),
                 );
-                (status, r, preview)
+                (status, r, text)
             }
         }
     }
@@ -352,22 +408,35 @@ impl Link {
     fn proxy(&self, msg: Value) {
         let id = msg.get("id").cloned().unwrap_or(Value::Null);
         let url = msg.get("url").and_then(Value::as_str).unwrap_or("").to_string();
+        let t0 = Instant::now();
         let (status, result, _) = self.run_query(&msg);
+        let ms = t0.elapsed().as_millis();
+        let mut err = None;
         let body = match result {
             Ok(Some(v)) => Some(v.chars().take(MAX_BODY_OUT).collect::<String>()),
-            Ok(None) => None,
+            Ok(None) => {
+                err = Some(if (200..300).contains(&status) { "nothing matched".to_string() } else { format!("HTTP {status}") });
+                None
+            }
             Err(e) => {
-                warn!("req {id} {url}: {e}");
+                error!("req {id} {url}: {e}");
+                err = Some(e);
                 None
             }
         };
-        info!("req {id} {} -> {status} {:?}", url.chars().take(80).collect::<String>(), body.as_deref().unwrap_or(""));
         let _ = self.send(&json!({"t": "resp", "id": id, "status": status, "body": body}));
         let name = self.url_names.lock().unwrap().get(&url).cloned();
+        let label = name.clone().unwrap_or_else(|| url.chars().take(60).collect());
+        match (&body, &err) {
+            (Some(v), _) => info!("{label} → {v} · {ms} ms"),
+            (None, Some(e)) if (200..300).contains(&status) => warn!("{label} · {e} · {ms} ms"),
+            (None, Some(e)) => warn!("{label} · {e}"),
+            _ => {}
+        }
         if let Some(name) = name {
             let at = chrono::Local::now().format("%H:%M:%S").to_string();
             self.update(|s| {
-                s.values.insert(name, AppValue { value: body, status, at });
+                s.values.insert(name, AppValue { value: body, status, at, error: err });
             });
         }
     }
@@ -483,7 +552,7 @@ impl Link {
                     }
                     Err(e) if e.kind() == ErrorKind::TimedOut || e.kind() == ErrorKind::Interrupted => continue,
                     Err(e) => {
-                        warn!("link lost: {e}");
+                        error!("link lost: {e}");
                         break;
                     }
                 }
@@ -493,6 +562,7 @@ impl Link {
             self.update(|s| {
                 s.connected = false;
                 s.fw = None;
+                s.screen = None;
             });
             thread::sleep(Duration::from_secs(1));
         }

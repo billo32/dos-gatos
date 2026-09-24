@@ -178,6 +178,7 @@ struct DataApp {
   String name, url, path, find, re, fmt, iconId;
   uint16_t keep = 128;
   uint32_t everyMs = 300000;
+  uint32_t durMs = APP_DWELL_MS;   // сколько показывать экран в плейлисте
   float scale = 1.0f;
   int8_t dec = -1;          // -1: показывать значение как есть
   int8_t font = FONT_DEFAULT;
@@ -214,6 +215,10 @@ bool wifiWasConnected = false;
 uint32_t wifiReportAt = 0;
 
 int8_t current = -1;          // -1 = clock, 0..appCount-1 = data app
+
+// Экран часов в плейлисте (settings{clock:{on,dur,pos,h24,wday}} от агента, хранится в NVS "clk")
+struct ClockCfg { bool on = true; uint32_t durMs = 10000; uint8_t pos = 0; bool h24 = true; bool wday = true; };
+ClockCfg clk;
 uint32_t shownAt = 0;
 int16_t scrollX = MW;
 uint32_t lastScroll = 0;
@@ -283,6 +288,7 @@ void sendHello() {
   d["heap"] = ESP.getFreeHeap();
   d["apps"] = appCount;
   d["font"] = FONT_NAMES[fontDefault];
+  d["scr"] = current < 0 ? "clock" : apps[current].name.c_str();
   fillWifiStatus(d["wifi"].to<JsonObject>());
   send(d);
 }
@@ -451,7 +457,9 @@ void loadAppsFromJson(JsonArrayConst arr) {
     x.re = a["re"] | "";
     x.keep = a["keep"] | 128;
     x.fmt = a["fmt"] | "{v}";
+    if (a["off"] | false) continue;       // выключен в плейлисте: не опрашиваем и не показываем
     x.everyMs = (uint32_t)(a["every"] | 300) * 1000UL;
+    x.durMs = (uint32_t)constrain((int)(a["dur"] | (int)(APP_DWELL_MS / 1000)), 2, 600) * 1000UL;
     x.scale = a["scale"] | 1.0f;
     x.dec = a["dec"] | -1;
     x.font = parseFont(a["font"].as<const char *>(), FONT_DEFAULT);
@@ -567,6 +575,22 @@ void reloadIconUsers(const String &id) {
     if (apps[i].iconId == id) loadIcon(id, appIcons[i]);
 }
 
+void applyClockCfg(JsonObjectConst c) {
+  clk.on = c["on"] | true;
+  clk.durMs = (uint32_t)constrain((int)(c["dur"] | 10), 2, 600) * 1000UL;
+  clk.pos = constrain((int)(c["pos"] | 0), 0, MAX_APPS);
+  clk.h24 = c["h24"] | true;
+  clk.wday = c["wday"] | true;
+}
+
+void sendScreen() {
+  if (!linkUp) return;
+  JsonDocument d;
+  d["t"] = "scr";
+  d["name"] = current < 0 ? "clock" : apps[current].name.c_str();
+  send(d);
+}
+
 void handleLine(char *line) {
   JsonDocument d;
   if (deserializeJson(d, line) != DeserializationError::Ok) return;
@@ -622,6 +646,18 @@ void handleLine(char *line) {
       prefs.putUChar("font", fontDefault);
       scrollX = MW;
     }
+    if (d["clock"].is<JsonObjectConst>()) {
+      applyClockCfg(d["clock"].as<JsonObjectConst>());
+      String c;
+      serializeJson(d["clock"], c);
+      if (c != prefs.getString("clk", "")) prefs.putString("clk", c);
+    }
+    if (d["restart"] | false) {
+      sendLog("restarting on request");
+      Serial.flush();
+      delay(100);
+      ESP.restart();
+    }
     sendHello();
   } else if (!strcmp(t, "wifi")) {
     if (d["ssid"].is<const char *>()) {
@@ -664,18 +700,39 @@ void pollSerial() {
 struct Btn { uint8_t pin; const char *name; bool prev; uint32_t at; };
 Btn btns[3] = { {PIN_BTN_L, "left", true, 0}, {PIN_BTN_M, "select", true, 0}, {PIN_BTN_R, "right", true, 0} };
 
-// Экраны без данных пропускаем; часы показываются всегда.
+// Слоты плейлиста: data apps в порядке apps.json, часы вставлены на позицию clk.pos.
+// Экраны без данных пропускаем; выключенные часы показываем, только если больше нечего.
+int slotToApp(int slot) {                 // -> -1 (часы) или индекс app
+  int cp = min((int)clk.pos, (int)appCount);
+  if (slot == cp) return -1;
+  return slot < cp ? slot : slot - 1;
+}
+int appToSlot(int app) {
+  int cp = min((int)clk.pos, (int)appCount);
+  if (app < 0) return cp;
+  return app < cp ? app : app + 1;
+}
+bool anyAppHasValue() {
+  for (uint8_t i = 0; i < appCount; i++) if (apps[i].value.length()) return true;
+  return false;
+}
 void nextApp(int dir) {
-  int n = appCount + 1;                  // + clock
-  int idx = current + 1;                 // clock = 0
+  int n = appCount + 1;
+  int slot = appToSlot(current);
+  bool clockOk = clk.on || !anyAppHasValue();
   for (int step = 0; step < n; step++) {
-    idx = (idx + dir + n) % n;
-    if (idx == 0 || apps[idx - 1].value.length()) break;
+    slot = (slot + dir + n) % n;
+    int a = slotToApp(slot);
+    if (a < 0 ? clockOk : apps[a].value.length() > 0) break;
   }
-  current = idx - 1;
+  int prev = current;
+  current = slotToApp(slot);
   shownAt = millis();
   scrollX = MW;
+  if (current != prev) sendScreen();
 }
+
+uint32_t dwellMs() { return current < 0 ? clk.durMs : apps[current].durMs; }
 
 void pollButtons() {
   for (auto &b : btns) {
@@ -747,7 +804,9 @@ void drawClock() {
   struct tm t;
   localtime_r(&now, &t);
   char buf[6];
-  snprintf(buf, sizeof(buf), "%02d:%02d", t.tm_hour, t.tm_min);
+  int hh = t.tm_hour;
+  if (!clk.h24) hh = hh % 12 ? hh % 12 : 12;
+  snprintf(buf, sizeof(buf), "%02d:%02d", hh, t.tm_min);
   // серым — время только из RTC, ни агент, ни NTP его ещё не подтвердили
   int x = drawText(buf, trustedTime ? matrix->Color(255, 240, 220) : matrix->Color(90, 90, 90), FONT_DEFAULT);
   if (t.tm_sec % 2) {
@@ -756,7 +815,7 @@ void drawClock() {
     const int cx = x + advance(f, buf[0]) + advance(f, buf[1]);
     matrix->fillRect(cx, 0, advance(f, ':') - 1, MH - 1, 0);
   }
-  drawWeekdays(t.tm_wday);
+  if (clk.wday) drawWeekdays(t.tm_wday);
 }
 
 // Точка в правом нижнем углу: нет — USB; синяя — работаем по Wi-Fi; красная — связи нет.
@@ -772,7 +831,7 @@ void render() {
   if (now < notifyUntil) {
     drawText(notifyText, notifyColor, notifyFont, &notifyIcon);
   } else {
-    if (now - shownAt > APP_DWELL_MS) nextApp(1);
+    if (now - shownAt > dwellMs() || (current < 0 && !clk.on && anyAppHasValue())) nextApp(1);
     if (current < 0) {
       drawClock();
     } else {
@@ -803,6 +862,10 @@ void setup() {
   brightness = prefs.getUChar("bright", 30);
   fontDefault = constrain((int8_t)prefs.getUChar("font", FONT_3X5), FONT_5X7, FONT_3X5);
   applyTz(prefs.getString("tzp", "UTC0"));
+  {
+    JsonDocument c;
+    if (deserializeJson(c, prefs.getString("clk", "{}")) == DeserializationError::Ok) applyClockCfg(c.as<JsonObjectConst>());
+  }
 
   if (!LittleFS.begin(true)) sendLog("littlefs mount failed");
   LittleFS.mkdir("/i");

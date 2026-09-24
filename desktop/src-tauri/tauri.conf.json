@@ -1,32 +1,45 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "TC001 Agent",
-  "version": "0.4.3",
-  "identifier": "dev.tls1.tc001",
+  "productName": "Dos GatOS",
+  "version": "0.5.0",
+  "identifier": "dev.tls1.dosgatos",
   "build": {
-    "frontendDist": "../ui"
+    "frontendDist": "../dist-web",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev:web",
+    "beforeBuildCommand": "npm run build:web"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
-        "label": "settings",
-        "title": "TC001",
-        "width": 900,
+        "label": "main",
+        "title": "Dos GatOS",
+        "width": 1040,
         "height": 660,
-        "minWidth": 720,
-        "minHeight": 520,
+        "minWidth": 900,
+        "minHeight": 600,
         "visible": false,
-        "center": true
+        "center": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "theme": "Light",
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 16
+        }
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,7 +48,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "13.0"
     }
   }
 }

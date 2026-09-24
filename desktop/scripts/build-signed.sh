@@ -1,10 +1,10 @@
 #!/bin/bash
-# Подписанная и нотаризованная сборка TC001 Agent (Developer ID, вне App Store).
+# Подписанная и нотаризованная сборка Dos GatOS (Developer ID, вне App Store).
 #
 #   cp signing.env.example signing.env   # заполнить один раз
 #   npm run release
 #
-# Результат: src-tauri/target/release/bundle/{macos/TC001 Agent.app, dmg/*.dmg}
+# Результат: src-tauri/target/release/bundle/{macos/Dos GatOS.app, dmg/*.dmg}
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -48,7 +48,7 @@ BUNDLE=src-tauri/target/release/bundle
 for t in universal-apple-darwin aarch64-apple-darwin x86_64-apple-darwin; do
   if [[ " $* " == *" $t"* ]]; then BUNDLE="src-tauri/target/$t/release/bundle"; fi
 done
-APP="$BUNDLE/macos/TC001 Agent.app"
+APP="$BUNDLE/macos/Dos GatOS.app"
 DMG=$(ls -t "$BUNDLE"/dmg/*.dmg | head -1)
 
 codesign --verify --deep --strict --verbose=2 "$APP"

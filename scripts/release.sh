@@ -56,7 +56,7 @@ else
 fi
 
 # ---------- приложение ----------
-step "TC001 Agent"
+step "Dos GatOS (приложение)"
 # cargo/rustc из rustup должны идти раньше Homebrew-версии: цели ставятся только в toolchain rustup
 export PATH="$HOME/.cargo/bin:$PATH"
 TARGET=universal-apple-darwin
@@ -87,8 +87,8 @@ else
 fi
 BUNDLE="src-tauri/target/$TARGET/release/bundle"
 DMG=$(ls -t "$BUNDLE"/dmg/*.dmg | head -1)
-cp "$DMG" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.dmg"
-(cd "$BUNDLE/macos" && ditto -c -k --keepParent "TC001 Agent.app" "$DIST/TC001-Agent-$VERSION-$ARCH_LABEL.app.zip")
+cp "$DMG" "$DIST/DosGatOS-$VERSION-$ARCH_LABEL.dmg"
+(cd "$BUNDLE/macos" && ditto -c -k --keepParent "Dos GatOS.app" "$DIST/DosGatOS-$VERSION-$ARCH_LABEL.app.zip")
 cd "$ROOT"
 
 if ((SIGNED && HAVE_NOTARY)); then
@@ -115,8 +115,8 @@ cat > "$NOTES" <<EOF
 **Прошивка:** \`tc001-usb-$TAG-merged.bin\` — через [веб-прошивальщик](https://billo32.github.io/dos-gatos/) или
 \`esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX --baud 460800 write_flash 0x0 tc001-usb-$TAG-merged.bin\`
 
-**TC001 Agent для macOS** ($( [[ $ARCH_LABEL == universal ]] && echo "Apple Silicon + Intel" || echo "только Apple Silicon" )): \`TC001-Agent-$VERSION-$ARCH_LABEL.dmg\`
-$( ((NOTARIZED)) && echo "Подписан Developer ID и нотаризован Apple." || { ((SIGNED)) && echo "Подписан Developer ID (без нотаризации: при первом запуске — «Всё равно открыть» в настройках безопасности)."; } || echo "Без подписи: после первой попытки запуска — Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть», или \`xattr -dr com.apple.quarantine \"/Applications/TC001 Agent.app\"\`." )
+**Dos GatOS для macOS** ($( [[ $ARCH_LABEL == universal ]] && echo "Apple Silicon + Intel" || echo "только Apple Silicon" )): \`DosGatOS-$VERSION-$ARCH_LABEL.dmg\`
+$( ((NOTARIZED)) && echo "Подписан Developer ID и нотаризован Apple." || { ((SIGNED)) && echo "Подписан Developer ID (без нотаризации: при первом запуске — «Всё равно открыть» в настройках безопасности)."; } || echo "Без подписи: после первой попытки запуска — Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть», или \`xattr -dr com.apple.quarantine \"/Applications/Dos GatOS.app\"\`." )
 
 Перед прошивкой сохрани текущую: \`esptool.py --chip esp32 --port … read_flash 0 0x400000 backup.bin\`
 EOF

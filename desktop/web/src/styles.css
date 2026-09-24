@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@import "@fontsource-variable/onest";
+@import "@fontsource-variable/unbounded";
+@import "@fontsource-variable/jetbrains-mono";
+
+@theme {
+  --color-ink: #1C1A17; --color-milk: #FAF7F2; --color-surface: #FFFFFF;
+  --color-sand: #F6F2EC; --color-sand-2: #F4F1EB; --color-titlebar: #F4F1EB;
+  --color-line: #E7E1D7; --color-line-soft: #EFEAE2; --color-field: #DCD5C9;
+  --color-muted: #5F584F; --color-subtle: #6A635A;
+  --color-ginger: #F0642D; --color-ginger-text: #B8431A; --color-ginger-deep: #8F3212; --color-ginger-soft: #FDE7DC;
+  --color-select: #FFF4EC;
+  --color-nav-active: #EFE7DB;
+  --color-toggle-on: #E2551F; --color-toggle-off: #D6D0C6;
+  --color-ok: #2BB673; --color-ok-text: #1E7A45; --color-danger: #B3261E;
+  --color-divider: #ECE6DC; --color-row: #F1ECE3; --color-handle: #B7AFA3;
+  --font-display: "Unbounded Variable", sans-serif;
+  --font-sans: "Onest Variable", sans-serif;
+  --font-mono: "JetBrains Mono Variable", monospace;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+  input, textarea, select, [role="log"] { user-select: text; -webkit-user-select: text; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  :focus-visible { outline: 2px solid var(--color-ginger); outline-offset: 2px; }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.5; }
+}

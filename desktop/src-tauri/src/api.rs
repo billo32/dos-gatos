@@ -53,8 +53,13 @@ fn route(link: &Arc<Link>, method: &Method, url: &str, body: &str) -> (u16, Valu
     };
     let msg = match url {
         "/notify" => {
+            let cfg = link.settings().notify;
+            if !cfg.on {
+                return (409, json!({"error": "notifications are turned off in the playlist"}));
+            }
             let mut m = b.as_object().cloned().unwrap_or_default();
             m.insert("t".into(), json!("notify"));
+            m.entry("dur").or_insert(json!(cfg.dur * 1000));
             if let Some(id) = m.get("icon").and_then(Value::as_str).map(str::to_string) {
                 if let Err(e) = link.ensure_icon(&id) {
                     return (400, json!({"error": e}));
@@ -78,6 +83,12 @@ fn route(link: &Arc<Link>, method: &Method, url: &str, body: &str) -> (u16, Valu
             };
         }
         "/bright" => json!({"t": "bright", "v": b.get("v").cloned().unwrap_or(json!(30))}),
+        "/restart" => {
+            return match link.restart_clock() {
+                Ok(()) => (200, json!({"ok": true})),
+                Err(e) => (503, json!({"error": e})),
+            }
+        }
         "/apps" => {
             return match link.save_apps(&b) {
                 Ok(_) => (200, json!({"ok": true})),

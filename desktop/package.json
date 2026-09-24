@@ -1,15 +1,37 @@
 {
-  "name": "tc001-agent",
+  "name": "dos-gatos",
   "private": true,
   "license": "MIT",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
+    "dev:web": "vite",
+    "build:web": "tsc -p web && vite build",
+    "test": "vitest run",
     "build": "tauri build --bundles app",
     "release": "./scripts/build-signed.sh"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  },
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/onest": "^5.3.1",
+    "@fontsource-variable/unbounded": "^5.3.0",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
   }
 }

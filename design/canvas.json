@@ -1,0 +1,88 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-09-23T20:29:26Z"
+ },
+ "title": "Dos GatOS",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Logo.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1240,
+   "title": "Logo"
+  },
+  "Clock.dc.html": {
+   "x": 1520,
+   "y": 1360,
+   "w": 661,
+   "h": 219,
+   "title": "TC001 clock — component",
+   "is_interactive": true
+  },
+  "Mark.dc.html": {
+   "x": 2280,
+   "y": 1360,
+   "w": 402,
+   "h": 186,
+   "title": "Mark — component"
+  },
+  "AppWindow.dc.html": {
+   "x": 4560,
+   "y": 3400,
+   "w": 1040,
+   "h": 660,
+   "title": "App — playlist",
+   "is_interactive": true
+  },
+  "AppSources.dc.html": {
+   "x": 5680,
+   "y": 3400,
+   "w": 1040,
+   "h": 660,
+   "title": "App — sources (REST)",
+   "is_interactive": true
+  },
+  "AppDevice.dc.html": {
+   "x": 7920,
+   "y": 3400,
+   "w": 1040,
+   "h": 660,
+   "title": "App — device",
+   "is_interactive": true
+  },
+  "AppLog.dc.html": {
+   "x": 9040,
+   "y": 3400,
+   "w": 1040,
+   "h": 660,
+   "title": "App — log",
+   "is_interactive": true
+  },
+  "AppExtensions.dc.html": {
+   "x": 6800,
+   "y": 3400,
+   "w": 1040,
+   "h": 660,
+   "title": "App — extensions",
+   "is_interactive": true
+  }
+ },
+ "order": [
+  "Logo.dc.html",
+  "Clock.dc.html",
+  "Mark.dc.html",
+  "AppWindow.dc.html",
+  "AppSources.dc.html",
+  "AppDevice.dc.html",
+  "AppLog.dc.html",
+  "AppExtensions.dc.html"
+ ],
+ "notes": {},
+ "designSystems": []
+}

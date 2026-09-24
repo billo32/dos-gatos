@@ -1,5 +1,5 @@
 #!/bin/bash
-# Двойной клик в Finder: собрать TC001 Agent и прошивку, создать тег и GitHub Release.
+# Двойной клик в Finder: собрать Dos GatOS и прошивку, создать тег и GitHub Release.
 cd "$(dirname "$0")" || exit 1
 pause() { echo; read -r -p "Enter — закрыть окно" _; }
 trap pause EXIT

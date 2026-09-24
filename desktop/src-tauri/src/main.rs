@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    tc001_agent_lib::run()
+    dos_gatos_lib::run()
 }

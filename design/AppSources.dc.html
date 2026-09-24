@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dos GatOS app — sources</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&amp;family=Onest:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 1040px; height: 660px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 60px rgba(28,26,23,0.16), 0 0 0 1px rgba(28,26,23,0.10); font-family: 'Onest', sans-serif; color: #1C1A17">
+<div style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #F4F1EB; border-bottom: 1px solid #E7E1D7">
+<div style="width: 12px; height: 12px; border-radius: 6px; background: #E9695F"></div>
+<div style="width: 12px; height: 12px; border-radius: 6px; background: #EDB54A"></div>
+<div style="width: 12px; height: 12px; border-radius: 6px; background: #5DBB63"></div>
+<div style="flex-grow: 1; text-align: center; font-size: 13px; font-weight: 500; color: #5F584F; margin-right: 52px">Dos GatOS</div>
+</div>
+<div style="flex-grow: 1; display: flex; min-height: 0">
+<div style="width: 220px; flex-shrink: 0; box-sizing: border-box; padding: 16px 12px; background: #FAF7F2; border-right: 1px solid #E7E1D7; display: flex; flex-direction: column; gap: 16px">
+<div style="padding: 12px; background: #FFFFFF; border: 1px solid #E7E1D7; border-radius: 10px; display: flex; flex-direction: column; gap: 5px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="font-weight: 600; font-size: 14px">TC001</div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #1E7A45"><div style="width: 8px; height: 8px; border-radius: 4px; background: #2BB673"></div>USB</div>
+</div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5F584F">/dev/cu.usbserial-110</div>
+<div style="font-size: 12px; color: #6A635A">fw 0.4.2 · replied 2 s ago</div>
+</div>
+<nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 2px">
+<a href="AppWindow.dc.html" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 400; color: #1C1A17; background: transparent"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Playlist</a>
+<a href="AppSources.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; color: #1C1A17; background: #EFE7DB"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5"></path></svg>Sources</a>
+<a href="AppExtensions.dc.html" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 400; color: #1C1A17; background: transparent"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM16.5 13v7M13 16.5h7"></path></svg>Extensions</a>
+<a href="AppDevice.dc.html" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 400; color: #1C1A17; background: transparent"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h18v8H3zM7 12h.01M11 12h6"></path></svg>Device</a>
+<a href="AppLog.dc.html" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 400; color: #1C1A17; background: transparent"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5zM9 8h6M9 12h6M9 16h4"></path></svg>Log</a>
+</nav>
+</div>
+<div style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 22px 28px; display: flex; flex-direction: column; gap: 18px; background: #FFFFFF">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 22px; letter-spacing: -0.01em">Sources</h1>
+<div style="font-size: 13px; color: #6A635A">REST endpoints the clock polls</div>
+</div>
+<div style="display: flex; gap: 8px"><button type="button" onClick="{{addNew}}" style="height: 38px; padding: 0 16px; border-radius: 9px; border: 0; background: #1C1A17; color: #FAF7F2; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">+ Add source</button></div>
+</div>
+<div style="display: flex; flex-direction: column; border: 1px solid #E7E1D7; border-radius: 12px; overflow: hidden; flex-shrink: 0">
+<sc-for list="{{list}}" as="s" hint-placeholder-count="4">
+<div style="height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 12px 0 16px; border-bottom: 1px solid #EFEAE2; background: #FFFFFF">
+<div style="width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; background: {{s.color}}; box-shadow: 0 0 0 1px rgba(28,26,23,0.15)"></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 14px; font-weight: 600">{{s.name}}</div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6A635A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{s.host}} · every {{s.every}}</div>
+</div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; padding: 4px 8px; border-radius: 6px; background: #1C1A17; color: {{s.color}}">{{s.disp}}</div>
+<button type="button" onClick="{{s.open}}" aria-label="{{s.gearLabel}}" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #5F584F; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+</div>
+</sc-for>
+<button type="button" onClick="{{addNew}}" style="height: 52px; border: 0; background: #FAF7F2; font: inherit; font-size: 14px; font-weight: 500; color: #1C1A17; cursor: pointer">+ Add source</button>
+</div>
+<div style="font-size: 12px; color: #6A635A; line-height: 1.45">Each source is a REST endpoint. Its value shows up in the playlist as its own screen.</div>
+</div>
+</div>
+<sc-if value="{{modalOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(28,26,23,0.32); display: flex; align-items: center; justify-content: center; z-index: 10">
+<div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 520px; max-height: 610px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 60px rgba(28,26,23,0.28); display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 60px; flex-shrink: 0; box-sizing: border-box; padding: 0 12px 0 22px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ECE6DC">
+<h2 id="dlg-title" style="margin: 0; font-size: 17px; font-weight: 600">{{modalTitle}}</h2>
+<button type="button" onClick="{{closeModal}}" aria-label="Close" style="width: 36px; height: 36px; border: 0; border-radius: 9px; background: transparent; color: #5F584F; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; box-sizing: border-box; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="height: 110px; flex-shrink: 0; border-radius: 12px; background: #F6F2EC; display: flex; align-items: center; justify-content: center">
+<dc-import name="Clock" screen="custom" text="{{cur.disp}}" color="{{cur.color}}" icon="{{cur.icon}}" scale="{{ 7 }}" body="white" animate="{{ false }}" autoplay="{{ false }}" hint-size="279px,94px"></dc-import>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-name" style="font-size: 13px; font-weight: 600; color: #1C1A17">Name</label><input id="s-name" type="text" value="{{cur.name}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-ref" style="font-size: 13px; font-weight: 600; color: #1C1A17">Refresh, s</label><input id="s-ref" type="number" value="{{cur.refresh}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17"></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-url" style="font-size: 13px; font-weight: 600; color: #1C1A17">URL</label><input id="s-url" type="text" value="{{cur.url}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-json" style="font-size: 13px; font-weight: 600; color: #1C1A17">JSON path</label><input id="s-json" type="text" value="{{cur.json}}" placeholder="e.g. current.temperature_2m" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+<div style="display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-fmt" style="font-size: 13px; font-weight: 600; color: #1C1A17">Format</label><input id="s-fmt" type="text" value="{{cur.format}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><div style="font-size: 13px; font-weight: 600; color: #1C1A17">Color</div><div role="radiogroup" aria-label="Color" style="height: 40px; display: flex; align-items: center; gap: 7px"><sc-for list="{{swatches}}" as="w" hint-placeholder-count="7"><button type="button" role="radio" aria-checked="{{w.checked}}" aria-label="{{w.c}}" onClick="{{w.pick}}" style="width: 24px; height: 24px; border-radius: 6px; border: 0; padding: 0; background: {{w.c}}; box-shadow: {{w.ring}}; cursor: pointer"></button></sc-for></div></div>
+</div>
+<button type="button" onClick="{{toggleAdv}}" aria-expanded="{{advExpanded}}" style="align-self: flex-start; height: 32px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: #B8431A; cursor: pointer">{{advLabel}}</button>
+<sc-if value="{{adv}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; border-radius: 12px; background: #FAF7F2">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-find" style="font-size: 13px; font-weight: 600; color: #1C1A17">Find</label><input id="s-find" type="text" value="{{cur.find}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-keep" style="font-size: 13px; font-weight: 600; color: #1C1A17">Keep, chars</label><input id="s-keep" type="number" value="{{cur.keep}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-re" style="font-size: 13px; font-weight: 600; color: #1C1A17">Regex</label><input id="s-re" type="text" value="{{cur.regex}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-mul" style="font-size: 13px; font-weight: 600; color: #1C1A17">Multiply by</label><input id="s-mul" type="number" value="{{cur.mult}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-dec" style="font-size: 13px; font-weight: 600; color: #1C1A17">Decimals</label><input id="s-dec" type="number" value="{{cur.dec}}" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17"></div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><label for="s-icon" style="font-size: 13px; font-weight: 600; color: #1C1A17">Icon (LaMetric ID)</label><input id="s-icon" type="text" value="{{cur.lametric}}" placeholder="e.g. 2422" style="height: 40px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #DCD5C9; background: #FFFFFF; font: inherit; font-size: 14px; color: #1C1A17; font-family: 'JetBrains Mono', monospace; font-size: 13px"></div>
+</div>
+</sc-if>
+</div>
+<div style="height: 64px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #ECE6DC; background: #FAF7F2">
+<button type="button" onClick="{{closeModal}}" style="height: 38px; padding: 0 12px; border-radius: 9px; border: 0; background: transparent; color: #B3261E; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">Delete</button>
+<div style="display: flex; gap: 8px"><button type="button" style="height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #DCD5C9; background: #FFFFFF; color: #1C1A17; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">Test</button><button type="button" onClick="{{closeModal}}" style="height: 38px; padding: 0 16px; border-radius: 9px; border: 0; background: #1C1A17; color: #FAF7F2; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">Save &amp; send to clock</button></div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1040,"height":660}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { modal: null, adv: false, colors: {} };
+  }
+  renderVals() {
+    const SRC = [{"id": "malaga-temp", "name": "malaga-temp", "refresh": "600", "url": "https://api.open-meteo.com/v1/forecast?latitude=36.72&longitude=-4.42&current=temperature_2m", "json": "current.temperature_2m", "find": "", "keep": "128", "regex": "", "format": "{v}C", "color": "#FFB23F", "mult": "1", "dec": "0", "icon": "sun", "lametric": "", "font": "default", "value": 21.0, "status": "200 OK · 182 ms · 312 B", "resp": ["{", "  \"latitude\": 36.72,", "  \"longitude\": -4.42,", "  \"current\": {", "    \"time\": \"2026-09-24T12:00\",", "    \"temperature_2m\": 21.0", "  }", "}"], "hi": 5}, {"id": "btc", "name": "btc", "refresh": "60", "url": "https://api.coinbase.com/v2/prices/BTC-USD/spot", "json": "data.amount", "find": "", "keep": "128", "regex": "", "format": "{v}", "color": "#FF7A3D", "mult": "1", "dec": "0", "icon": "chart", "lametric": "", "font": "default", "value": 84486.12, "status": "200 OK · 94 ms · 71 B", "resp": ["{", "  \"data\": {", "    \"amount\": \"84486.12\",", "    \"base\": \"BTC\",", "    \"currency\": \"USD\"", "  }", "}"], "hi": 2}, {"id": "rain-find", "name": "rain-find", "refresh": "1800", "url": "https://api.open-meteo.com/v1/forecast?latitude=36.72&longitude=-4.42&hourly=precipitation_probability", "json": "", "find": "\"precipitation_probability\":[", "keep": "128", "regex": "\\[(\\d+)", "format": "{v}%", "color": "#4DA3FF", "mult": "1", "dec": "0", "icon": "rain", "lametric": "", "font": "default", "value": 0, "status": "200 OK · 211 ms · 4.8 KB", "resp": ["  \"hourly\": {", "    \"time\": [\"2026-09-24T00:00\", …],", "    \"precipitation_probability\": [0, 0, 5, 10, 15, …]", "  }"], "hi": 2}, {"id": "amp-futures", "name": "amp-futures", "refresh": "30", "url": "https://example.com/api/futures/quote", "json": "last", "find": "", "keep": "128", "regex": "", "format": "{v}", "color": "#FFF1DC", "mult": "1", "dec": "0", "icon": "", "lametric": "", "font": "default", "value": 103158, "status": "200 OK · 140 ms · 58 B", "resp": ["{", "  \"symbol\": \"[symbol]\",", "  \"last\": 103158", "}"], "hi": 2}];
+    const st = this.state;
+    const fmt = (s) => { const v = (s.value * (parseFloat(s.mult) || 1)).toFixed(parseInt(s.dec, 10) || 0); return (s.format || '{v}').split('{v}').join(v); };
+    const every = (r) => { const n = parseInt(r, 10); return n >= 3600 ? (n / 3600) + ' h' : n >= 60 ? (n / 60) + ' min' : n + ' s'; };
+    const all = SRC.map((s) => ({ ...s, color: st.colors[s.id] || s.color }));
+    const list = all.map((s) => ({ name: s.name, color: s.color, disp: fmt(s), every: every(s.refresh),
+      host: s.url.replace(/^https?:[/][/]/, '').split('/')[0], gearLabel: s.name + ' settings',
+      open: () => this.setState({ modal: s.id, adv: false }) }));
+    const blank = { id: 'new', name: '', refresh: '600', url: '', json: '', find: '', keep: '128', regex: '', format: '{v}', color: '#FFF1DC', mult: '1', dec: '0', icon: '', lametric: '', value: 0 };
+    let cur = st.modal === 'new' ? blank : all.find((s) => s.id === st.modal);
+    if (cur) cur = { ...cur, disp: st.modal === 'new' ? '--' : fmt(cur) };
+    const setColor = (c) => cur && this.setState({ colors: { ...st.colors, [cur.id]: c } });
+    const swatches = ['#FFB23F','#FF7A3D','#FF4B4B','#3DDC84','#4DA3FF','#B57BFF','#FFF1DC'].map((c) => ({ c,
+      checked: cur && c === cur.color ? 'true' : 'false',
+      ring: cur && c === cur.color ? '0 0 0 2px #FFFFFF, 0 0 0 4px #1C1A17' : 'inset 0 0 0 1px rgba(28,26,23,0.15)', pick: () => setColor(c) }));
+    return { list, cur: cur || blank, swatches, modalOpen: !!cur,
+      modalTitle: st.modal === 'new' ? 'New source' : (cur ? cur.name : ''),
+      adv: st.adv, advExpanded: st.adv ? 'true' : 'false', advLabel: st.adv ? 'Hide advanced' : 'Advanced: find, regex, math, icon',
+      toggleAdv: () => this.setState({ adv: !st.adv }),
+      addNew: () => this.setState({ modal: 'new', adv: false }),
+      closeModal: () => this.setState({ modal: null }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -83,14 +83,14 @@ esptool.py --chip esp32 --port /dev/cu.usbserial-XXXX read_flash 0 0x400000 tc00
   <ol>
     <li>Connect the clock with a USB-C <b>data</b> cable. Charge-only cables don't work.</li>
     <li>Turn the clock on. It is invisible to the computer while it's off.</li>
-    <li>Close anything holding the port: TC001 Agent, Arduino IDE, PlatformIO, serial monitors.</li>
+    <li>Close anything holding the port: Dos GatOS, Arduino IDE, PlatformIO, serial monitors.</li>
     <li>In the dialog, pick <code>USB Serial</code> / <code>CH340</code> (on some revisions <code>CP2102</code>).</li>
   </ol>
   <p class="muted">Flashing takes about a minute. Settings stored on the clock are kept unless you choose to erase the device.</p>
 
   <h2>After flashing</h2>
   <p>The clock shows <code>--:--</code> with a red dot: it's waiting for the agent.
-    Install <b>TC001 Agent</b> from the <a href="https://github.com/billo32/dos-gatos/releases/latest">latest release</a>,
+    Install <b>Dos GatOS</b> from the <a href="https://github.com/billo32/dos-gatos/releases/latest">latest release</a>,
     open it and the clock gets time and data within a few seconds.</p>
 
   <h2>Going back</h2>
