@@ -48,7 +48,7 @@ Rust + Tauri 2, интерфейс — React 19 + TypeScript + Tailwind v4 (`des
 - **Device** — яркость, шрифт, часовой пояс, 24 ч, Wi‑Fi fallback, перезапуск часов.
 - **Log** — живой лог, фильтр проблем, экспорт.
 
-Сборка (нужны Xcode Command Line Tools, Rust, Node ≥ 20.19):
+Сборка (нужны Xcode Command Line Tools, Rust, Node ≥ 20):
 
 ```bash
 cd desktop
