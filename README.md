@@ -1,10 +1,20 @@
-# Dos GatOS
+# Dos GatOS — alternative firmware for the Ulanzi TC001 pixel clock
 
-**Alternative firmware for the Ulanzi TC001 pixel clock.** The clock fetches data from the internet
-on its own, takes updates from your Mac or browser, and shows apps from a marketplace — weather,
-crypto, CI status, merge requests, Home Assistant sensors, your next meeting and more.
+[![Release](https://img.shields.io/github/v/release/billo32/dos-gatos)](https://github.com/billo32/dos-gatos/releases/latest)
+[![Build](https://github.com/billo32/dos-gatos/actions/workflows/build.yml/badge.svg)](https://github.com/billo32/dos-gatos/actions/workflows/build.yml)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-orange)](LICENSE)
+[![Web flasher](https://img.shields.io/badge/flash-dosgatos.app-F0642D)](https://dosgatos.app/flash)
+
+**Dos GatOS turns the Ulanzi TC001 (the ESP32 smart pixel clock AWTRIX runs on) into a tiny computer
+for your desk.** The clock fetches data from the internet on its own, takes updates from your Mac or
+browser, and shows apps from a marketplace — weather, crypto, CI status, merge requests, Home Assistant
+sensors, your next meeting and more.
 
 ![Dos GatOS on a TC001](docs/hero.png)
+
+![Clock, weather, crypto ticker, CI status, Pomodoro, now playing, calendar, notifications, Home Assistant](docs/screens.png)
+
+<sub>Screens rendered by the clock emulator on [dosgatos.app](https://dosgatos.app).</sub>
 
 **Flash it from your browser: [dosgatos.app/flash](https://dosgatos.app/flash)** — Chrome or Edge on
 a computer and a USB cable, nothing to install.
@@ -26,6 +36,14 @@ a computer and a USB cable, nothing to install.
 - **Three pixel fonts** (3×5, 4×6, 5×7), adjustable brightness and scroll speed; Cyrillic and accented
   text is transliterated.
 - **A technical screen** on all three buttons: the IP address and firmware version, or why Wi‑Fi doesn't connect.
+
+## Supported hardware
+
+- **Ulanzi TC001** smart pixel clock: ESP32 (ESP32-D0WD, 4 MB flash), 32×8 WS2812 LED matrix, three
+  buttons, buzzer, DS1307 real-time clock, CH340 USB serial.
+- A computer with Chrome or Edge to flash it from the browser, or `esptool` / PlatformIO.
+
+Other ESP32 matrix clocks aren't supported out of the box: the pins and matrix layout are the TC001's.
 
 ## Install
 
@@ -101,6 +119,23 @@ blue — on its own over Wi‑Fi; red — neither. Grey text means the data is s
 - [docs/sources.md](docs/sources.md) — the fields of an app (source): URL, JSON path, format, icons, headers
 - [docs/manifest-v2.md](docs/manifest-v2.md) — values, templates, rules, color scales and frames
 - [docs/protocol.md](docs/protocol.md) — how the clock talks to the app over USB and Wi‑Fi
+
+## FAQ
+
+**How is it different from AWTRIX 3?** Both run on the same clock. AWTRIX 3 is a mature firmware
+built around MQTT and Home Assistant: other systems push apps and notifications to the clock. Dos
+GatOS works the other way round — the clock pulls its apps from any JSON API itself, described by a
+small manifest with rules, color scales and frames, installed from a marketplace or written in the
+Studio, with a Mac app and a web app for setup. No MQTT broker or server needed.
+
+**Can I go back to the stock firmware or AWTRIX?** Yes. Keep the backup from your first flash and
+write it back with esptool (see above), or flash AWTRIX 3 from its own web installer.
+
+**Does it need my computer to keep running?** No. Set up Wi‑Fi once from the app; after that the clock
+polls its apps on its own. The Mac app adds sources from your Mac (now playing, calendar, battery).
+
+**Can I make my own app?** Yes — in the [Studio](https://dosgatos.app/app/studio): paste a manifest or
+start from a template, fetch the API, watch the result live, then put it on your clock.
 
 ## Known limitations
 
