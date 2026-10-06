@@ -54,9 +54,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" tc001-usb-*.bin SHA256SUMS.txt --title "Dos GatOS $GITHUB_REF_NAME" --notes "**Update** a clock already on Dos GatOS (Wi-Fi and settings stay):
-          \`esptool --chip esp32 --port PORT --baud 460800 write-flash 0x10000 tc001-usb-$GITHUB_REF_NAME-app.bin\`
+          \`esptool --chip esp32 --port PORT --baud 115200 write-flash 0x10000 tc001-usb-$GITHUB_REF_NAME-app.bin\`
 
           **First install** — the whole image from 0x0, or just use https://dosgatos.app/flash:
-          \`esptool --chip esp32 --port PORT --baud 460800 write-flash 0x0 tc001-usb-$GITHUB_REF_NAME-merged.bin\`
+          \`esptool --chip esp32 --port PORT --baud 115200 write-flash 0x0 tc001-usb-$GITHUB_REF_NAME-merged.bin\`
 
           Back up what's on the clock first: \`esptool --chip esp32 --port PORT read-flash 0 0x400000 backup.bin\`"

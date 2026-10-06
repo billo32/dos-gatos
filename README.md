@@ -69,17 +69,18 @@ PORT=$(ls /dev/cu.usbserial-* | head -1)        # macOS; /dev/ttyUSB0 on Linux, 
 esptool --chip esp32 --port $PORT read-flash 0 0x400000 tc001-backup.bin
 
 # 2a. First install: the whole image from 0x0 (erases the clock's settings)
-esptool --chip esp32 --port $PORT --baud 460800 write-flash 0x0 tc001-usb-vX.Y.Z-merged.bin
+esptool --chip esp32 --port $PORT --baud 115200 write-flash 0x0 tc001-usb-vX.Y.Z-merged.bin
 
 # 2b. Update a clock already on Dos GatOS: only the app, Wi-Fi and settings stay
-esptool --chip esp32 --port $PORT --baud 460800 write-flash 0x10000 tc001-usb-vX.Y.Z-app.bin
+esptool --chip esp32 --port $PORT --baud 115200 write-flash 0x10000 tc001-usb-vX.Y.Z-app.bin
 
 # Back to the backup
 esptool --chip esp32 --port $PORT write-flash 0x0 tc001-backup.bin
 ```
 
-If the transfer stops halfway, use `--baud 115200`. The TC001's buzzer beeps for as long as esptool
-holds the chip in its bootloader — that's expected; the web flasher silences it.
+The TC001's USB chip (CH340) isn't reliable at higher speeds, so these commands use 115200 baud; a full
+image takes about two minutes. The buzzer beeps for as long as esptool holds the chip in its
+bootloader — that's expected; the web flasher silences it.
 
 ### From source
 
