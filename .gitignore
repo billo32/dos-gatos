@@ -1,0 +1,10 @@
+# build
+.pio/
+.platformio/
+.venv/
+__pycache__/
+*.bin
+# Ulanzi's stock firmware is proprietary — never commit a backup
+tc001-backup.bin
+*-backup.bin
+.DS_Store

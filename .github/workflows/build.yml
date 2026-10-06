@@ -1,0 +1,62 @@
+# Builds the firmware on every push and pull request. A tag vX.Y.Z (scripts/release.sh) also
+# publishes a GitHub release with the images:
+#   tc001-usb-vX.Y.Z-merged.bin — the whole flash from 0x0 (first install, web flasher)
+#   tc001-usb-vX.Y.Z-app.bin    — the app only, from 0x10000 (update; Wi-Fi and settings stay)
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('platformio.ini') }}
+      - name: Tag and FW_VERSION agree
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          FW=$(sed -nE 's/#define FW_VERSION +"([^"]+)".*/\1/p' src/version.h)
+          [ "v$FW" = "${GITHUB_REF_NAME}" ] || { echo "src/version.h says $FW, the tag is ${GITHUB_REF_NAME}"; exit 1; }
+      - run: pip install --quiet platformio "esptool>=5"
+      - run: pio run
+      - name: Images
+        run: |
+          B=.pio/build/tc001
+          BOOT_APP0=$(find ~/.platformio/packages/framework-arduinoespressif32 -name boot_app0.bin | head -1)
+          V=${GITHUB_REF_NAME#refs/heads/}
+          [[ "$V" == v*.*.* ]] || V=dev
+          esptool --chip esp32 merge-bin -o tc001-usb-$V-merged.bin \
+            0x1000 $B/bootloader.bin 0x8000 $B/partitions.bin 0xe000 "$BOOT_APP0" 0x10000 $B/firmware.bin
+          cp $B/firmware.bin tc001-usb-$V-app.bin
+          sha256sum tc001-usb-*.bin | tee SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            tc001-usb-*.bin
+            SHA256SUMS.txt
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" tc001-usb-*.bin SHA256SUMS.txt --title "Dos GatOS $GITHUB_REF_NAME" --notes "**Update** a clock already on Dos GatOS (Wi-Fi and settings stay):
+          \`esptool --chip esp32 --port PORT --baud 460800 write-flash 0x10000 tc001-usb-$GITHUB_REF_NAME-app.bin\`
+
+          **First install** — the whole image from 0x0, or just use https://dosgatos.app/flash:
+          \`esptool --chip esp32 --port PORT --baud 460800 write-flash 0x0 tc001-usb-$GITHUB_REF_NAME-merged.bin\`
+
+          Back up what's on the clock first: \`esptool --chip esp32 --port PORT read-flash 0 0x400000 backup.bin\`"
