@@ -31,8 +31,9 @@ a computer and a USB cable, nothing to install.
   When the Dos GatOS app is around (USB or the same Wi‑Fi network), requests go through it instead.
 - **Up to 16 apps**, each with its own icon from the [LaMetric gallery](https://developer.lametric.com/icons),
   color, font and time on screen. The clock keeps its apps and settings, so they follow it from computer to computer.
-- **Built in:** a Pomodoro timer, today's date and day countdowns, an ON CALL screen while your Mac's
-  microphone or camera is busy, notifications.
+- **Built in:** a Pomodoro timer and plain timers (5 minutes to 2 hours), today's date and day countdowns,
+  an ON CALL screen while your Mac's microphone or camera is busy, notifications, and "do not disturb
+  until morning".
 - **Three pixel fonts** (3×5, 4×6, 5×7), adjustable brightness and scroll speed; Cyrillic and accented
   text is transliterated.
 - **A technical screen** on all three buttons: the IP address and firmware version, or why Wi‑Fi doesn't connect.
@@ -98,8 +99,9 @@ Wi‑Fi, apps, fonts and the clock face are set from the Dos GatOS app:
 
 - **[Web app](https://dosgatos.app/app)** — in Chrome or Edge, over USB (Web Serial). Set up Wi‑Fi here
   and the clock carries on without the computer.
-- **Mac app** — also answers sources from your Mac (now playing, calendar, battery, Claude usage) and
-  finds the clock on your Wi‑Fi network, no cable needed.
+- **[Mac app](https://github.com/billo32/dos-gatos/releases?q=app-v)** — also answers sources from your
+  Mac (now playing, calendar, battery, Claude usage), finds the clock on your Wi‑Fi network, and puts the
+  clock in your menu bar: next screen (⌥⌘→ from any app), do not disturb, timers.
 
 The clock only joins **2.4 GHz** networks.
 

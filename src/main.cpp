@@ -502,7 +502,13 @@ uint8_t pomoRounds = 0;
 // looking at other screens while the timer runs: since when (0 = the timer is on screen)
 uint32_t pomoAwayAt = 0;
 #define POMO_AWAY_MS 15000   // back to the timer after this long without a button
-Icon pomoTomato, pomoCup;
+Icon pomoTomato, pomoCup;   // pomoCup also holds the hourglass while a plain timer runs (static DRAM is tight)
+bool pomoOnce = false;      // a plain timer (from the app's menu): one phase, a beep, done
+// do not disturb (from the app's menu): screen dark and buzzer quiet until this time (epoch, 0 = off)
+time_t dndUntil = 0;
+bool dndActive();
+void navigate(int dir);
+void plainTimer(int minutes);
 uint8_t beepsLeft = 0;
 uint32_t beepAt = 0;
 bool beepOn = false;
@@ -518,6 +524,7 @@ void sendHello() {
   JsonDocument d;
   d["t"] = "hello";
   d["fw"] = FW_VERSION;
+  if (dndActive()) d["dnd"] = (long)dndUntil;
   d["rst"] = resetReason();                // причина последней перезагрузки — для диагностики
   d["heap"] = ESP.getFreeHeap();
   d["apps"] = appCount;
@@ -1110,6 +1117,13 @@ void handleLine(char *line, Chan from = CH_USB) {
       callIcon.ok = false;
       if (id.length()) loadIcon(id, callIcon);
     }
+  } else if (!strcmp(t, "nav")) {            // the app's "Next screen": like the side buttons
+    navigate((d["dir"] | 1) < 0 ? -1 : 1);
+  } else if (!strcmp(t, "dnd")) {            // do not disturb until {until} (epoch), 0 = now off
+    dndUntil = (time_t)(d["until"] | 0L);
+    sendLog(dndActive() ? "do not disturb on" : "do not disturb off");
+  } else if (!strcmp(t, "pomo") && (d["min"] | 0) > 0) {   // a plain timer from the app's menu
+    plainTimer(d["min"] | 0);
   } else if (!strcmp(t, "pomo")) {           // из приложения: start / stop / toggle (пауза)
     const char *cmd = d["cmd"] | "";
     if (!strcmp(cmd, "start") && !pomoActive()) pomoStartStop();
@@ -1403,6 +1417,18 @@ uint32_t dwellMs() {
   return a.frames.empty() ? a.durMs : max(a.durMs, (uint32_t)a.frames.size() * a.fdurMs);
 }
 
+bool dndActive() { return dndUntil && timeSynced && time(nullptr) < dndUntil; }
+
+// Left/right, from the buttons or the app: while the timer or a call is on, the first press leaves its
+// screen for the others (it comes back by itself), later ones go through the playlist.
+void navigate(int dir) {
+  infoUntil = 0;
+  const bool fromSticky = stickyActive() && !pomoAwayAt;
+  if (stickyActive()) pomoAwayAt = millis();
+  if (!fromSticky) nextApp(dir);
+  else shownAt = millis();
+}
+
 void pollButtons() {
   for (auto &b : btns) {
     bool v = digitalRead(b.pin);
@@ -1410,6 +1436,13 @@ void pollButtons() {
       b.at = millis();
       b.prev = v;
       if (!v) {                          // active low: нажата
+        if (dndActive()) {               // any button ends "do not disturb", and does nothing else
+          dndUntil = 0;
+          comboHeld = true;
+          midLong = true;
+          sendLog("do not disturb off (button)");
+          continue;
+        }
         if (infoUntil && !comboHeld) {   // any button closes the technical screen, and does nothing else
           infoUntil = 0;
           comboHeld = true;
@@ -1423,13 +1456,7 @@ void pollButtons() {
           send(d);
         }
         if (b.pin == PIN_BTN_M) midLong = false;   // решаем на отпускании: короткое или долгое
-        else {
-          // while the timer runs or a call is on, left/right leave its screen to look at others; it comes back by itself
-          const bool fromTimer = stickyActive() && !pomoAwayAt;
-          if (stickyActive()) pomoAwayAt = millis();
-          if (!fromTimer) nextApp(b.pin == PIN_BTN_L ? -1 : 1);
-          else shownAt = millis();
-        }
+        else navigate(b.pin == PIN_BTN_L ? -1 : 1);
       } else if (b.pin == PIN_BTN_M && !midLong) {  // отпущена: короткое нажатие
         if (stickyActive() && pomoAwayAt) pomoAwayAt = 0;        // back to the timer or the call
         else if (onCall()) {}                                    // nothing to do on the call screen
@@ -1536,6 +1563,10 @@ void applyPomoCfg(JsonObjectConst c) {
   pomo.sound = c["sound"] | true;
 }
 
+static const char *const TOMATO[8] = {"...gg...", "..rggr..", ".rrrrrr.", "rrrrrrrr", "rrrrrrrr", "rrrrrrrr", ".rrrrrr.", "..rrrr.."};
+static const char *const CUP[8] = {"..s.s...", "...s.s..", ".wwwww..", ".wwwwwww", ".wwwww.w", ".wwwwwww", "..www...", "........"};
+static const char *const HOURGLASS[8] = {".wwwwww.", ".w....w.", "..wssw..", "...ss...", "...ss...", "..w..w..", ".wssssw.", ".wwwwww."};
+
 void spriteIcon(Icon &ic, const char *const rows[8], char key1, uint16_t c1, char key2, uint16_t c2) {
   ic.n = 1;
   ic.delay[0] = 1000;
@@ -1549,8 +1580,6 @@ void spriteIcon(Icon &ic, const char *const rows[8], char key1, uint16_t c1, cha
 }
 
 void pomoInit() {
-  static const char *const TOMATO[8] = {"...gg...", "..rggr..", ".rrrrrr.", "rrrrrrrr", "rrrrrrrr", "rrrrrrrr", ".rrrrrr.", "..rrrr.."};
-  static const char *const CUP[8] = {"..s.s...", "...s.s..", ".wwwww..", ".wwwwwww", ".wwwww.w", ".wwwwwww", "..www...", "........"};
   spriteIcon(pomoTomato, TOMATO, 'r', matrix->Color(255, 70, 50), 'g', matrix->Color(60, 200, 90));
   spriteIcon(pomoCup, CUP, 'w', matrix->Color(255, 241, 220), 's', matrix->Color(110, 110, 120));
   JsonDocument c;
@@ -1559,7 +1588,7 @@ void pomoInit() {
 
 // The buzzer is active: high = sound. Between beeps the pin goes back to a pull-down, as at boot.
 void beep(uint8_t n) {
-  if (!pomo.sound) return;
+  if (!pomo.sound || dndActive()) return;
   beepsLeft = n;
   beepAt = millis();
 }
@@ -1596,13 +1625,15 @@ void sendPomo() {
   d["left"] = pomoLeft() / 1000;
   d["paused"] = pomoPaused;
   d["rounds"] = pomoRounds;
+  d["timer"] = pomoOnce;
+  d["total"] = pomoPhaseMs / 1000;
   send(d);
 }
 
-void pomoStart(PomoPhase ph) {
+void pomoStart(PomoPhase ph, uint32_t ms = 0) {
   pomoPhase = ph;
   pomoAwayAt = 0;                           // a new phase always shows the timer
-  pomoPhaseMs = (ph == POMO_WORK ? pomo.work : ph == POMO_BREAK ? pomo.brk : pomo.lng) * 60000UL;
+  pomoPhaseMs = ms ? ms : (ph == POMO_WORK ? pomo.work : ph == POMO_BREAK ? pomo.brk : pomo.lng) * 60000UL;
   pomoEndsAt = millis() + pomoPhaseMs;
   pomoPaused = false;
   sendPomo();
@@ -1610,6 +1641,7 @@ void pomoStart(PomoPhase ph) {
 
 void pomoStop() {
   pomoPhase = POMO_IDLE;
+  pomoOnce = false;
   pomoPaused = false;
   shownAt = millis();
   sendPomo();
@@ -1621,9 +1653,20 @@ void pomoStartStop() {
     pomoStop();
   } else {
     pomoRounds = 0;
+    pomoOnce = false;
+    spriteIcon(pomoCup, CUP, 'w', matrix->Color(255, 241, 220), 's', matrix->Color(110, 110, 120));
     beep(1);
     pomoStart(POMO_WORK);
   }
+}
+
+// A plain timer for `minutes` (1–120): one phase with an hourglass, three beeps at the end.
+void plainTimer(int minutes) {
+  pomoRounds = 0;
+  pomoOnce = true;
+  spriteIcon(pomoCup, HOURGLASS, 'w', matrix->Color(255, 200, 90), 's', matrix->Color(255, 241, 220));
+  beep(1);
+  pomoStart(POMO_WORK, (uint32_t)constrain(minutes, 1, 120) * 60000UL);
 }
 
 void pomoPauseResume() {
@@ -1637,6 +1680,11 @@ void pomoPauseResume() {
 void pomoLoop() {
   pollBeep();
   if (!pomoActive() || pomoPaused || pomoLeft() > 0) return;
+  if (pomoOnce) {                          // a plain timer just ends
+    beep(3);
+    pomoStop();
+    return;
+  }
   if (pomoPhase == POMO_WORK) {
     pomoRounds++;
     beep(3);
@@ -1649,18 +1697,19 @@ void pomoLoop() {
 
 void drawPomodoro() {
   const uint32_t left = pomoLeft();
-  char buf[6];
+  char buf[8];
   const uint32_t s = (left + 999) / 1000;
-  snprintf(buf, sizeof buf, "%02lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60));
-  const bool work = pomoPhase == POMO_WORK;
-  uint16_t color = work ? matrix->Color(255, 110, 90) : matrix->Color(90, 220, 130);
+  if (s >= 3600) snprintf(buf, sizeof buf, "%lu:%02lu", (unsigned long)(s / 3600), (unsigned long)(s / 60 % 60));   // 1:59
+  else snprintf(buf, sizeof buf, "%02lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60));
+  const bool work = pomoPhase == POMO_WORK && !pomoOnce;
+  uint16_t color = pomoOnce ? matrix->Color(255, 200, 90) : work ? matrix->Color(255, 110, 90) : matrix->Color(90, 220, 130);
   if (pomoPaused && (millis() / 500) % 2) color = matrix->Color(70, 70, 70);   // пауза — мигает серым
-  drawText(buf, color, FONT_DEFAULT, work ? &pomoTomato : &pomoCup);
+  drawText(buf, color, FONT_DEFAULT, work ? &pomoTomato : &pomoCup);   // pomoCup is the hourglass for a timer
   // bottom row: how much of the phase is done
   const int x0 = ICON_W + 1, w = MW - x0;
   const int done = (int)((uint64_t)(pomoPhaseMs - left) * w / pomoPhaseMs);
   matrix->drawFastHLine(x0, MH - 1, w, matrix->Color(40, 40, 45));
-  if (done > 0) matrix->drawFastHLine(x0, MH - 1, done, work ? matrix->Color(200, 60, 40) : matrix->Color(50, 170, 90));
+  if (done > 0) matrix->drawFastHLine(x0, MH - 1, done, pomoOnce ? matrix->Color(200, 140, 40) : work ? matrix->Color(200, 60, 40) : matrix->Color(50, 170, 90));
 }
 
 // Полоса дней недели в нижней строке: 7 сегментов по 3 px, понедельник первый, сегодня — оранжевый
@@ -1722,6 +1771,10 @@ void drawBoot(uint32_t now) {
 void render() {
   matrix->fillScreen(0);
   uint32_t now = millis();
+  if (dndActive()) {                       // do not disturb: dark until the morning (or a button)
+    matrix->show();
+    return;
+  }
 
   if (now < BOOT_SCREEN_MS && now >= notifyUntil) {
     drawBoot(now);

@@ -15,7 +15,7 @@ over USB serial (CH340, 460800 baud) or over the local network.
 
 | message | when |
 |---|---|
-| `hello{fw,apps,font,wifi,rst,heap,scr,id,cfg,fs,max,line}` | after boot and on `hello?`; `id` is the chip id, `cfg` the stored config revision, `fs{used,total}` LittleFS use, `max` how many switched-on apps are shown (16), `line` the longest line accepted (12288 bytes) |
+| `hello{fw,apps,font,wifi,rst,heap,scr,id,cfg,fs,max,line,dnd?}` | after boot and on `hello?`; `dnd` is set while "do not disturb" is on; `id` is the chip id, `cfg` the stored config revision, `fs{used,total}` LittleFS use, `max` how many switched-on apps are shown (16), `line` the longest line accepted (12288 bytes) |
 | `req{id,url,path?,find?,keep?,re?,headers?,ipath?}` | an app is due |
 | `pong` | answer to `ping` |
 | `btn{b}` | a button was pressed |
@@ -23,7 +23,7 @@ over USB serial (CH340, 460800 baud) or over the local network.
 | `wifi{ssid,state,ip?,rssi?,why?}` | Wi‑Fi changed; `why` says why it can't join (0.8.2) |
 | `scr{name}` | which screen is showing |
 | `cfg{rev,cfg?}` | answer to `cfg?` |
-| `pomo{phase,left,paused,rounds}` | Pomodoro state |
+| `pomo{phase,left,paused,rounds,timer,total}` | Pomodoro or timer state (`timer`, `total` from 0.9.3) |
 
 **App → clock**
 
@@ -43,6 +43,9 @@ over USB serial (CH340, 460800 baud) or over the local network.
 | `cfg{rev,cfg}`, `cfg?` | store / fetch the app's config on the clock |
 | `pomo{cmd: start|stop|toggle}` | Pomodoro |
 | `busy{on,icon?}` | ON CALL while repeated, and 15 s after |
+| `nav{dir}` | next (1) or previous (-1) screen, like the side buttons (0.9.3) |
+| `dnd{until}` | dark and quiet until that time (unix seconds), `0` turns it off; any button wakes the clock (0.9.3) |
+| `pomo{cmd:"start",min}` | a plain timer for 1–120 minutes: an hourglass, three beeps at the end (0.9.3) |
 
 **Config on the clock** (0.6.0): `cfg{rev,cfg}` is the app's whole configuration (sources, clock
 face, brightness, time zone) with a revision. The clock doesn't read it: it keeps it in LittleFS
