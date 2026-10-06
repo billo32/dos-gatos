@@ -18,6 +18,7 @@
 #include <Wire.h>
 #include <esp_sntp.h>
 #include <esp_system.h>
+#include <esp_partition.h>
 #include <sys/time.h>
 
 #include "Font4x6.h"
@@ -204,9 +205,14 @@ void fsBegin() {
   fsGuard = 0;
   fsOk = LittleFS.begin(true);
   if (fsOk && crashedInWrite) {
+    // LittleFS.format() fails on the damaged filesystem this recovers from (and the next mount
+    // then finds the same damage), so wipe the whole partition and let begin() make a new one
     LittleFS.end();
-    fsOk = LittleFS.format() && LittleFS.begin(true);
-    fsNote = "littlefs: the last restart happened while writing — reformatted, icons and config will be re-sent";
+    const esp_partition_t *p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "spiffs");
+    const bool wiped = p && esp_partition_erase_range(p, 0, p->size) == ESP_OK;
+    fsOk = wiped && LittleFS.begin(true);
+    fsNote = fsOk ? "littlefs: the last restart happened while writing — erased and made anew, icons and config will be re-sent"
+                  : "littlefs: the last restart happened while writing and the filesystem couldn't be made anew — icons and config can't be stored";
   } else if (!fsOk) {
     fsNote = "littlefs mount failed — icons and config can't be stored";
   }
